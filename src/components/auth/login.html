@@ -1,0 +1,71 @@
+<div class="flex min-h-screen w-full items-center justify-center p-4">
+    <hlm-card class="w-full max-w-sm pt-6">
+
+        <div class="flex items-center justify-center">
+            <img src="/logo.png" alt="Logo" class="h-24 w-auto object-contain" />
+        </div>
+
+        <div hlmCardHeader class="text-center">
+            <h3 hlmCardTitle class="text-xl">Login to your account</h3>
+            <p hlmCardDescription>Enter your phone number to receive a verification code.</p>
+        </div>
+
+        <div hlmCardContent>
+            <!-- اتصال formGroup و ngSubmit -->
+            <form id="login-form" [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+                <div class="space-y-2">
+                    <label hlmLabel for="phone">Phone Number</label>
+
+                    <div class="flex items-stretch w-full">
+                        <div
+                            class="flex h-10 shrink-0 items-center justify-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground font-mono">
+                            +98
+                        </div>
+
+                        <!-- اتصال formControlName -->
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            formControlName="phone"
+                            hlmInput 
+                            placeholder="9120000000"
+                            class="h-10 flex-1 rounded-l-none font-mono" 
+                            autocomplete="tel" 
+                            maxlength="10" 
+                        />
+                    </div>
+
+                    <!-- نمایش خطای ولیدیشن شماره -->
+                    @if (form.controls.phone.touched && form.controls.phone.hasError('required')) {
+                        <p class="text-xs text-destructive">Phone number is required.</p>
+                    } @else if (form.controls.phone.touched && form.controls.phone.hasError('pattern')) {
+                        <p class="text-xs text-destructive">Enter a valid 10-digit phone number (e.g. 9120000000).</p>
+                    }
+                </div>
+
+                <!-- نمایش خطای دریافتی از سرور -->
+                @if (errorMessage()) {
+                    <div class="rounded-md bg-destructive/15 p-2 text-center text-xs text-destructive">
+                        {{ errorMessage() }}
+                    </div>
+                }
+            </form>
+        </div>
+
+        <div hlmCardFooter>
+            <button 
+                hlmBtn 
+                type="submit" 
+                class="w-full" 
+                form="login-form"
+                [disabled]="isLoading() || form.invalid"
+            >
+                @if (isLoading()) {
+                    <span class="animate-pulse">Sending code...</span>
+                } @else {
+                    <span>Send verification code</span>
+                }
+            </button>
+        </div>
+    </hlm-card>
+</div>
