@@ -1,0 +1,88 @@
+<hlm-toaster />
+
+<hlm-card class="w-full max-w-md pt-6">
+  <div class="flex items-center justify-center">
+    <img src="/logo.png" alt="Logo" class="h-20 w-auto object-contain" />
+  </div>
+
+  <div hlmCardHeader class="text-center">
+    <h3 hlmCardTitle class="text-xl">Verify Phone Number</h3>
+    <p hlmCardDescription class="mt-1">
+      A 4-digit verification code was sent to 
+      <span class="font-mono font-medium text-foreground inline-block">{{ phone() }}</span>
+    </p>
+  </div>
+
+  <div hlmCardContent>
+    <form id="otp-form" [formRoot]="form" class="space-y-4">
+      <hlm-field>
+        <div class="flex items-center justify-between">
+          <label hlmFieldLabel for="otp-verification">Verification Code</label>
+          <button 
+            hlmBtn 
+            variant="ghost" 
+            size="sm" 
+            type="button"
+            [disabled]="isResendDisabled() || isResending()" 
+            (click)="resendOtp()"
+            class="text-xs h-8 gap-1.5"
+          >
+            <ng-icon name="lucideRefreshCw" [class.animate-spin]="isResending()" />
+            Resend
+            @if (countdown() > 0) {
+              <span class="font-mono">({{ countdown() }}s)</span>
+            }
+          </button>
+        </div>
+
+        <!-- 4-Digit OTP Input -->
+        <div class="flex justify-center py-2">
+          <brn-input-otp
+            hlmInputOtp
+            [length]="maxLength"
+            inputId="otp-verification"
+            inputClass="disabled:cursor-not-allowed font-mono"
+            [formField]="form.otp"
+            [transformPaste]="transformPaste"
+            (completed)="submit()"
+          >
+            <hlm-input-otp-group
+              class="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl"
+            >
+              <hlm-input-otp-slot index="0" />
+              <hlm-input-otp-slot index="1" />
+              <hlm-input-otp-slot index="2" />
+              <hlm-input-otp-slot index="3" />
+            </hlm-input-otp-group>
+          </brn-input-otp>
+        </div>
+
+        <hlm-field-description class="text-center mt-2">
+          <button 
+            type="button" 
+            (click)="changePhone()" 
+            class="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+          >
+            Change phone number
+          </button>
+        </hlm-field-description>
+      </hlm-field>
+    </form>
+  </div>
+
+  <div hlmCardFooter class="flex flex-col gap-3">
+    <button 
+      type="submit" 
+      form="otp-form" 
+      hlmBtn 
+      class="w-full" 
+      [disabled]="form().invalid() || isVerifying()"
+    >
+      @if (isVerifying()) {
+        <span class="animate-pulse">Verifying...</span>
+      } @else {
+        <span>Verify & Continue</span>
+      }
+    </button>
+  </div>
+</hlm-card>
