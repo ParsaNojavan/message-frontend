@@ -15,8 +15,8 @@ export class OtpService {
 	private readonly baseUrl = 'http://localhost:3000/user';
 
 	sendVerificationCode(phone: string): Observable<{ success: boolean; message: string }> {
-		return this.http.post<{ success: boolean; message: string }>(`${this.baseUrl}/send-otp`, {
-			phone,
+		return this.http.post<{ success: boolean; message: string }>(`${this.baseUrl}/login`, {
+			phoneNumber: phone,
 		});
 	}
 
