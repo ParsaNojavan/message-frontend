@@ -59,9 +59,9 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
   readonly form = form(
     this._model,
     (schemaPath) => {
-      required(schemaPath.otp, { message: 'کد تایید الزامی است' });
-      minLength(schemaPath.otp, this.maxLength, { message: `کد باید ${this.maxLength} رقم باشد` });
-      maxLength(schemaPath.otp, this.maxLength, { message: `کد باید ${this.maxLength} رقم باشد` });
+      required(schemaPath.otp, { message: 'Verification code is required' });
+      minLength(schemaPath.otp, this.maxLength, { message: `Code must be ${this.maxLength} digits` });
+      maxLength(schemaPath.otp, this.maxLength, { message: `Code must be ${this.maxLength} digits` });
     },
     {
       submission: {
@@ -86,7 +86,7 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
     const resolvedPhone = phoneFromQuery || phoneFromState;
 
     if (!resolvedPhone) {
-      console.warn('شماره تلفن یافت نشد، انتقال به لاگین');
+      console.warn('Phone number not found, redirecting to login');
       this.router.navigate(['/login']);
       return;
     }
@@ -111,11 +111,11 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
         localStorage.setItem('access_token', res.accessToken);
       }
 
-      toast.success('ورود با موفقیت انجام شد');
+      toast.success('Logged in successfully');
       this.router.navigate(['/dashboard']);
     } catch (err: any) {
-      toast.error('خطا در احراز هویت', {
-        description: err?.error?.message || 'کد وارد شده نامعتبر یا منقضی شده است.',
+      toast.error('Authentication error', {
+        description: err?.error?.message || 'The entered code is invalid or expired.',
       });
     } finally {
       this.isVerifying.set(false);
@@ -128,11 +128,11 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
     this.isResending.set(true);
     try {
       await firstValueFrom(this.otpService.sendVerificationCode(this.phone()));
-      toast.success('کد جدید ارسال شد');
+      toast.success('New code sent');
       this.resetCountdown();
     } catch (err: any) {
-      toast.error('خطا در ارسال مجدد', {
-        description: err?.error?.message || 'ارسال کد با خطا مواجه شد.',
+      toast.error('Resend error', {
+        description: err?.error?.message || 'Failed to send code.',
       });
     } finally {
       this.isResending.set(false);
