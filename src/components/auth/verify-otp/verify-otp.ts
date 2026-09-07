@@ -1,7 +1,7 @@
 import { afterNextRender, Component, computed, inject, OnInit, signal, type OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, timer } from 'rxjs';
 
 import { form, FormField, FormRoot, maxLength, minLength, required, submit } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -107,12 +107,15 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
     try {
       const res = await firstValueFrom(this.otpService.verifyOtp(this.phone(), code));
 
-      if (res?.accessToken) {
-        localStorage.setItem('access_token', res.accessToken);
+      if (res?.data.token) {
+        cookieStore.set('access_token', res.data.token);
+        cookieStore.set('refresh_token', res.data.refreshToken);
       }
 
       toast.success('Logged in successfully');
-      this.router.navigate(['/dashboard']);
+      timer(1000).subscribe(() => {
+        this.router.navigate(['/chat']);
+      });
     } catch (err: any) {
       toast.error('Authentication error', {
         description: err?.error?.message || 'The entered code is invalid or expired.',
