@@ -1,0 +1,18 @@
+<div class="flex h-screen w-full overflow-hidden bg-background" dir="ltr">
+    <!-- Chat List Sidebar -->
+    <aside class="w-full md:w-80 lg:w-96 border-r border-border h-full flex flex-col shrink-0">
+        <app-chat-sidebar></app-chat-sidebar>
+    </aside>
+
+    <!-- Active Chat Window / Empty State -->
+    <main class="hidden md:flex flex-1 h-full flex-col">
+        @if (chatService.activeConversationId()) {
+        <app-chat-window class="h-full w-full"></app-chat-window>
+        } @else {
+        <!-- Default view when no chat is selected -->
+        <div class="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <span class="text-sm">Select a conversation to start messaging</span>
+        </div>
+        }
+    </main>
+</div>
