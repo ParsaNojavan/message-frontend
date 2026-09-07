@@ -16,4 +16,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../components/auth/verify-otp/verify-otp').then((m) => m.VerifyOtpComponent),
   },
+  {
+    path: 'chat',
+    loadComponent: () =>
+      import('../components/chat/chat-page.component').then(m => m.ChatPageComponent)
+  },
 ];
