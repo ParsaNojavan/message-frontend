@@ -3,8 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface VerifyOtpResponse {
-	accessToken: string;
-	refreshToken?: any;
+	data: {
+		token: string;
+		refreshToken?: any;
+	}
 }
 
 @Injectable({
@@ -21,7 +23,7 @@ export class OtpService {
 	}
 
 	verifyOtp(phone: string, code: string): Observable<VerifyOtpResponse> {
-		console.log(phone,code)		
+		console.log(phone, code)
 		return this.http.post<VerifyOtpResponse>(`${this.baseUrl}/verify-code`, {
 			phoneNumber: phone,
 			verificationCode: code,
