@@ -27,6 +27,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 
 import { AccountSettingsComponent } from '../modals/account-dialog.component';
+import { SettingsDialogComponent } from '../modals/setting-dialog.component';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -39,7 +40,8 @@ import { AccountSettingsComponent } from '../modals/account-dialog.component';
     HlmAvatarImports,
     HlmBadgeImports,
     HlmDialogImports,
-    AccountSettingsComponent
+    AccountSettingsComponent,
+    SettingsDialogComponent
   ],
   providers: [
     provideIcons({
