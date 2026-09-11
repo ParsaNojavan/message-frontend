@@ -127,9 +127,8 @@
     </div>
 
     <!-- Input Footer Area -->
-    <footer class="p-3 bg-card border-t border-border flex items-center gap-2">
+    <footer class="p-3 bg-card border-t border-border flex items-center gap-2 relative">
 
-        <!-- Attachment Button & Popup Menu -->
         <!-- Attachment Button & Popup Menu -->
         <div class="relative flex items-center" id="attachment-wrapper">
 
@@ -144,7 +143,7 @@
                 (change)="onFilePicked($event, 'camera')" />
 
             <button type="button" (click)="toggleAttachmentMenu($event)"
-                class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all shrink-0"
+                class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all shrink-0 cursor-pointer"
                 [class.bg-accent]="isAttachmentOpen()" [class.text-foreground]="isAttachmentOpen()">
                 <ng-icon name="lucidePaperclip" class="text-xl"></ng-icon>
             </button>
@@ -157,16 +156,14 @@
                 <!-- Photo / Video -->
                 <button type="button" (click)="mediaInput.click(); isAttachmentOpen.set(false)"
                     class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideImage"
-                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <ng-icon name="lucideImage" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
                     <span class="text-sm font-medium">Photo or Video</span>
                 </button>
 
                 <!-- Document -->
                 <button type="button" (click)="docInput.click(); isAttachmentOpen.set(false)"
                     class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideFileText"
-                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <ng-icon name="lucideFileText" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
                     <span class="text-sm font-medium">Document</span>
                 </button>
 
@@ -183,29 +180,77 @@
                 <!-- Camera -->
                 <button type="button" (click)="cameraInput.click(); isAttachmentOpen.set(false)"
                     class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideCamera"
-                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <ng-icon name="lucideCamera" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
                     <span class="text-sm font-medium">Camera</span>
                 </button>
             </div>
             }
         </div>
 
-
-        <!-- Input Box -->
-        <div class="flex-1 relative flex items-center">
+        <!-- Input Box & Emoji Picker -->
+        <div class="flex-1 relative flex items-center" id="emoji-wrapper">
             <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..."
                 class="w-full bg-accent/40 border border-transparent focus:border-red-500 focus:bg-background rounded-full px-4 py-2.5 text-sm outline-none transition-all pr-10" />
 
-            <button type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+            <!-- Smile Toggle Button -->
+            <button type="button" (click)="toggleEmojiMenu($event)"
+                class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                [class.text-red-500]="isEmojiOpen()">
                 <ng-icon name="lucideSmile" class="text-lg"></ng-icon>
             </button>
+
+            <!-- WhatsApp-Style Emoji Picker Window -->
+            @if (isEmojiOpen()) {
+            <div
+                class="absolute bottom-full right-0 mb-3 w-80 sm:w-[380px] h-[390px] rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in zoom-in-95 duration-150 origin-bottom-right">
+
+                <!-- پنل داخلی ایموجی‌پیکر -->
+                <div class="flex-1 overflow-hidden relative">
+                    <emoji-picker class="whatsapp-theme" (emoji-click)="onEmojiSelect($event)">
+                    </emoji-picker>
+                </div>
+
+                <div class="h-12 bg-zinc-950/80 border-t border-zinc-800/80 px-4 flex items-center justify-between select-none">
+                    
+                    <div class="flex items-center gap-6 text-[13px] font-bold tracking-wider">
+                        <button type="button" (click)="activeTab = 'emoji'"
+                            class="relative py-3 transition-colors uppercase"
+                            [class.text-red-500]="activeTab === 'emoji'"
+                            [class.text-zinc-400]="activeTab !== 'emoji'">
+                            EMOJI
+                            @if (activeTab === 'emoji') {
+                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
+                            }
+                        </button>
+
+                        <!-- <button type="button" (click)="activeTab = 'gif'"
+                            class="relative py-3 transition-colors uppercase"
+                            [class.text-red-500]="activeTab === 'gif'"
+                            [class.text-zinc-400]="activeTab !== 'gif'">
+                            GIF
+                            @if (activeTab === 'gif') {
+                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
+                            }
+                        </button>
+
+                        <button type="button" (click)="activeTab = 'sticker'"
+                            class="relative py-3 transition-colors uppercase"
+                            [class.text-red-500]="activeTab === 'sticker'"
+                            [class.text-zinc-400]="activeTab !== 'sticker'">
+                            STICKER
+                            @if (activeTab === 'sticker') {
+                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
+                            }
+                        </button> -->
+                    </div>
+                </div>
+            </div>
+            }
         </div>
 
         <!-- Send Button -->
         <button (click)="send()" [disabled]="!messageText.trim()"
-            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 shrink-0">
+            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 shrink-0 cursor-pointer">
             <ng-icon name="lucideSend" class="text-base"></ng-icon>
         </button>
     </footer>

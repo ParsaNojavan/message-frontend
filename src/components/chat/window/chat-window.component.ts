@@ -1,8 +1,9 @@
-import { Component, inject, ViewChild, ElementRef, AfterViewChecked, signal, HostListener } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef, AfterViewChecked, signal, HostListener, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../services/chat/chat.service';
 import { provideIcons, NgIconComponent } from '@ng-icons/core';
+import 'emoji-picker-element';
 import {
   lucidePhone,
   lucideVideo,
@@ -33,6 +34,7 @@ import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 @Component({
   selector: 'app-chat-window',
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
     CommonModule,
     FormsModule,
@@ -71,12 +73,35 @@ export class ChatWindowComponent implements AfterViewChecked {
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
-  // وضعیت باز/بسته بودن منوی سنجاق
   isAttachmentOpen = signal(false);
+  isEmojiOpen = signal(false);
+  activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
 
   toggleAttachmentMenu(event: MouseEvent) {
     event.stopPropagation();
     this.isAttachmentOpen.update(v => !v);
+    this.isEmojiOpen.set(false);
+  }
+
+  toggleEmojiMenu(event: MouseEvent) {
+    event.stopPropagation();
+    this.isEmojiOpen.update(v => !v);
+    this.isAttachmentOpen.set(false);
+  }
+
+  onEmojiSelect(event: any) {
+    const emoji = event.detail?.unicode;
+    if (emoji) {
+      this.messageText += emoji;
+    }
+  }
+
+
+  deleteLastChar() {
+    if (!this.messageText) return;
+    const chars = Array.from(this.messageText);
+    chars.pop();
+    this.messageText = chars.join('');
   }
 
   @HostListener('document:click', ['$event'])
@@ -84,6 +109,9 @@ export class ChatWindowComponent implements AfterViewChecked {
     const target = event.target as HTMLElement;
     if (!target.closest('#attachment-wrapper')) {
       this.isAttachmentOpen.set(false);
+    }
+    if (!target.closest('#emoji-wrapper')) {
+      this.isEmojiOpen.set(false);
     }
   }
 
@@ -96,6 +124,7 @@ export class ChatWindowComponent implements AfterViewChecked {
     if (!this.messageText.trim()) return;
     this.chatService.sendMessage(this.messageText);
     this.messageText = '';
+    this.isEmojiOpen.set(false);
   }
 
   ngAfterViewChecked() {

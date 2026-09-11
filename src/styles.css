@@ -73,6 +73,33 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+emoji-picker.whatsapp-theme {
+  --background: transparent;
+  --border-color: transparent;
+  --category-emoji-size: 1.15rem;
+  --category-tab-active-color: #ef4444;
+  --emoji-size: 1.4rem;
+  --emoji-padding: 0.35rem;
+  --indicator-color: #ef4444;
+  --input-border-color: #27272a;
+  --input-border-radius: 9999px;
+  --input-font-color: #f4f4f5;
+  --input-placeholder-color: #71717a;
+  --input-padding: 0.45rem 1rem;
+  --outline-color: #ef4444;
+  --num-columns: 8;
+
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+emoji-picker.whatsapp-theme::part(picker) {
+  scrollbar-width: 0;
+  scrollbar-color: #3f3f46 transparent;
+}
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
