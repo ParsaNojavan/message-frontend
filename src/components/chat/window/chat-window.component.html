@@ -105,7 +105,8 @@
                     <div class="relative mt-1 px-1 py-1 bg-muted/50 rounded-lg border border-border/30">
                         <div (wheel)="onEmojiWheel($event)"
                             class="flex items-center gap-1.5 overflow-x-auto scroll-smooth py-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            @for (emoji of ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡']; track emoji) {
+                            @for (emoji of ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨',
+                            '⚡']; track emoji) {
                             <button type="button" (click)="onReaction(msg, emoji)"
                                 class="flex-shrink-0 flex items-center justify-center size-8 rounded-full hover:bg-accent hover:scale-125 active:scale-95 transition-all duration-150 text-base select-none">
                                 {{ emoji }}
@@ -127,23 +128,84 @@
 
     <!-- Input Footer Area -->
     <footer class="p-3 bg-card border-t border-border flex items-center gap-2">
-        <button
-            class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-            <ng-icon name="lucidePaperclip" class="text-xl"></ng-icon>
-        </button>
 
+        <!-- Attachment Button & Popup Menu -->
+        <!-- Attachment Button & Popup Menu -->
+        <div class="relative flex items-center" id="attachment-wrapper">
+
+            <!-- Hidden Inputs for actual file picking -->
+            <input #mediaInput type="file" accept="image/*,video/*" multiple class="hidden"
+                (change)="onFilePicked($event, 'media')" />
+            <input #docInput type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar" multiple class="hidden"
+                (change)="onFilePicked($event, 'document')" />
+            <input #audioInput type="file" accept="audio/*" multiple class="hidden"
+                (change)="onFilePicked($event, 'audio')" />
+            <input #cameraInput type="file" accept="image/*" capture="environment" class="hidden"
+                (change)="onFilePicked($event, 'camera')" />
+
+            <button type="button" (click)="toggleAttachmentMenu($event)"
+                class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all shrink-0"
+                [class.bg-accent]="isAttachmentOpen()" [class.text-foreground]="isAttachmentOpen()">
+                <ng-icon name="lucidePaperclip" class="text-xl"></ng-icon>
+            </button>
+
+            <!-- Attachment Menu Dropdown -->
+            @if (isAttachmentOpen()) {
+            <div
+                class="absolute bottom-full left-0 mb-3 w-52 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 origin-bottom-left">
+
+                <!-- Photo / Video -->
+                <button type="button" (click)="mediaInput.click(); isAttachmentOpen.set(false)"
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
+                    <ng-icon name="lucideImage"
+                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <span class="text-sm font-medium">Photo or Video</span>
+                </button>
+
+                <!-- Document -->
+                <button type="button" (click)="docInput.click(); isAttachmentOpen.set(false)"
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
+                    <ng-icon name="lucideFileText"
+                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <span class="text-sm font-medium">Document</span>
+                </button>
+
+                <!-- Audio -->
+                <button type="button" (click)="audioInput.click(); isAttachmentOpen.set(false)"
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
+                    <ng-icon name="lucideHeadphones"
+                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <span class="text-sm font-medium">Audio</span>
+                </button>
+
+                <div class="my-1 border-t border-border/40"></div>
+
+                <!-- Camera -->
+                <button type="button" (click)="cameraInput.click(); isAttachmentOpen.set(false)"
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
+                    <ng-icon name="lucideCamera"
+                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    <span class="text-sm font-medium">Camera</span>
+                </button>
+            </div>
+            }
+        </div>
+
+
+        <!-- Input Box -->
         <div class="flex-1 relative flex items-center">
             <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..."
                 class="w-full bg-accent/40 border border-transparent focus:border-red-500 focus:bg-background rounded-full px-4 py-2.5 text-sm outline-none transition-all pr-10" />
 
-            <button
+            <button type="button"
                 class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
                 <ng-icon name="lucideSmile" class="text-lg"></ng-icon>
             </button>
         </div>
 
+        <!-- Send Button -->
         <button (click)="send()" [disabled]="!messageText.trim()"
-            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition shadow-md shadow-red-500/20">
+            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 shrink-0">
             <ng-icon name="lucideSend" class="text-base"></ng-icon>
         </button>
     </footer>
