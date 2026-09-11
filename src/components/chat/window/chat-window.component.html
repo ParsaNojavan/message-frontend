@@ -52,39 +52,83 @@
         @for (msg of chatService.currentMessages(); track msg.id) {
         <div class="flex flex-col" [class.items-end]="msg.isSender" [class.items-start]="!msg.isSender">
 
-            <div [ngClass]="msg.isSender 
-                ? 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/60 rounded-2xl rounded-br-sm' 
-                : 'bg-card border border-border rounded-2xl rounded-bl-sm'"
-                class="max-w-[75%] p-3 shadow-sm relative group">
+            <div [hlmContextMenuTrigger]="msgMenu" [ngClass]="msg.isSender 
+                    ? 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/60 rounded-2xl rounded-br-sm' 
+                    : 'bg-card border border-border rounded-2xl rounded-bl-sm'"
+                class="max-w-[75%] p-3 shadow-sm relative group cursor-pointer">
 
-                <!-- Reply Context if exists -->
-                @if (msg.replyTo) {
-                <div class="mb-2 p-2 bg-black/5 dark:bg-white/5 border-l-2 border-red-500 rounded text-xs">
-                    <span class="font-semibold text-red-600 block">{{ msg.replyTo.senderName }}</span>
-                    <span class="text-muted-foreground truncate block">{{ msg.replyTo.text }}</span>
-                </div>
-                }
-
-                <!-- Text Content -->
-                <p class="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words dir-auto">{{ msg.text
-                    }}</p>
-
-                <!-- Time & Status -->
-                <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-muted-foreground select-none">
-                    <span>{{ msg.time }}</span>
-                    @if (msg.isSender) {
-                    <ng-icon name="lucideCheckCheck" class="text-red-600 text-xs"></ng-icon>
-                    }
-                </div>
+                <p class="text-sm text-foreground whitespace-pre-wrap break-words">
+                    {{ msg.text }}
+                </p>
             </div>
 
+            <ng-template #msgMenu>
+                <hlm-dropdown-menu
+                    class="w-60 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl">
+
+                    <!-- Menu Options -->
+                    <button hlmDropdownMenuItem (click)="onReply(msg)"
+                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                        <ng-icon name="lucideReply" class="size-4 text-muted-foreground" />
+                        <span class="text-sm">Reply</span>
+                    </button>
+
+                    <button hlmDropdownMenuItem (click)="onCopy(msg)"
+                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                        <ng-icon name="lucideCopy" class="size-4 text-muted-foreground" />
+                        <span class="text-sm">Copy Text</span>
+                    </button>
+
+                    <button hlmDropdownMenuItem (click)="onForward(msg)"
+                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                        <ng-icon name="lucideForward" class="size-4 text-muted-foreground" />
+                        <span class="text-sm">Forward</span>
+                    </button>
+
+                    <button hlmDropdownMenuItem (click)="onPin(msg)"
+                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                        <ng-icon name="lucidePin" class="size-4 text-muted-foreground" />
+                        <span class="text-sm">Pin</span>
+                    </button>
+
+                    <hlm-dropdown-menu-separator class="my-1 border-border/40" />
+
+                    <button hlmDropdownMenuItem variant="destructive" (click)="onDelete(msg)"
+                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                        <ng-icon name="lucideTrash2" class="size-4" />
+                        <span class="text-sm font-medium">Delete Message</span>
+                    </button>
+
+                    <hlm-dropdown-menu-separator class="my-1.5 border-border/40" />
+
+                    <!-- Quick Reactions -->
+                    <div class="relative mt-1 px-1 py-1 bg-muted/50 rounded-lg border border-border/30">
+                        <div (wheel)="onEmojiWheel($event)"
+                            class="flex items-center gap-1.5 overflow-x-auto scroll-smooth py-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            @for (emoji of ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡']; track emoji) {
+                            <button type="button" (click)="onReaction(msg, emoji)"
+                                class="flex-shrink-0 flex items-center justify-center size-8 rounded-full hover:bg-accent hover:scale-125 active:scale-95 transition-all duration-150 text-base select-none">
+                                {{ emoji }}
+                            </button>
+                            }
+                        </div>
+                    </div>
+
+                </hlm-dropdown-menu>
+            </ng-template>
+
+        </div>
+        } @empty {
+        <div class="flex items-center justify-center h-full text-muted-foreground text-sm">
+            No messages
         </div>
         }
     </div>
 
     <!-- Input Footer Area -->
     <footer class="p-3 bg-card border-t border-border flex items-center gap-2">
-        <button class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+        <button
+            class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
             <ng-icon name="lucidePaperclip" class="text-xl"></ng-icon>
         </button>
 
