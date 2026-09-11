@@ -44,14 +44,14 @@ import {
         <div class="flex items-center justify-between px-3 py-2.5 border-b border-zinc-800/60">
           <button 
             (click)="ctx.close()" 
-            class="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 p-1.5 rounded-lg transition-colors duration-150">
+            class="text-zinc-400 hover:text-zinc-100 cursor-pointer">
             <ng-icon name="lucideX" class="text-lg block"></ng-icon>
           </button>
           
           <h3 hlmDialogTitle class="text-sm font-semibold tracking-wide text-zinc-200">Account</h3>
           
           <button 
-            class="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 p-1.5 rounded-lg transition-colors duration-150">
+            class="text-zinc-400 hover:text-zinc-100 cursor-pointer">
             <ng-icon name="lucideMoreVertical" class="text-lg block"></ng-icon>
           </button>
         </div>
