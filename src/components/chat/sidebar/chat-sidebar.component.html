@@ -193,11 +193,6 @@
                         <img hlmAvatarImage src="/avatar.png" alt="Profile" />
                         <span hlmAvatarFallback class="font-semibold text-lg">PN</span>
                     </hlm-avatar>
-                    <!-- Green Edit Badge -->
-                    <button
-                        class="absolute -bottom-1 -right-1 size-7 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-colors">
-                        <ng-icon name="lucidePencil" class="text-xs"></ng-icon>
-                    </button>
                 </div>
 
                 <div class="text-center mt-1">
@@ -210,11 +205,7 @@
             <div class="h-px bg-border/60"></div>
 
             <div class="py-2">
-                <button (click)="onMenuItemClick('account')"
-                    class="w-full flex items-center gap-4 px-4 py-3 text-sm text-foreground/90 hover:bg-accent/60 transition-colors">
-                    <ng-icon name="lucideUser" class="text-xl text-muted-foreground shrink-0"></ng-icon>
-                    <span class="flex-1 text-left font-medium">Account</span>
-                </button>
+                <app-account-settings></app-account-settings>
 
                 <button (click)="onMenuItemClick('saved-messages')"
                     class="w-full flex items-center gap-4 px-4 py-3 text-sm text-foreground/90 hover:bg-accent/60 transition-colors">

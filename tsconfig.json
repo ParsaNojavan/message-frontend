@@ -26,7 +26,8 @@
       "@spartan-ng/helm/select": ["./libs/ui/select/src/index.ts"],
       "@spartan-ng/helm/button-group": ["./libs/ui/button-group/src/index.ts"],
       "@spartan-ng/helm/avatar": ["./libs/ui/avatar/src/index.ts"],
-      "@spartan-ng/helm/badge": ["./libs/ui/badge/src/index.ts"]
+      "@spartan-ng/helm/badge": ["./libs/ui/badge/src/index.ts"],
+      "@spartan-ng/helm/dialog": ["./libs/ui/dialog/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
