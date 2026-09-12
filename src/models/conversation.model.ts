@@ -10,3 +10,24 @@ export interface Conversation {
   unreadCount?: number;
   isOnline?: boolean;
 }
+
+export interface SearchResultItem {
+  id: string;
+  name: string;
+  username?: string;
+  avatar?: string;
+  fallbackText: string;
+  fallbackBg?: string;
+  type: 'chat' | 'channel' | 'bot' | 'service';
+  verified?: boolean;
+  subInfo?: string;
+  actionText?: string;
+}
+
+export interface RecentContact {
+  id: string;
+  name: string;
+  avatar?: string;
+  fallbackText: string;
+  fallbackBg?: string;
+}
