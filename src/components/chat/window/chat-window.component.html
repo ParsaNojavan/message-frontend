@@ -13,19 +13,19 @@
 
         <div class="flex items-center gap-1 text-muted-foreground">
             <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucideVideo" class="text-lg"></ng-icon>
             </button>
             <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucidePhone" class="text-lg"></ng-icon>
             </button>
             <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucideSearch" class="text-lg"></ng-icon>
             </button>
             <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucideMoreVertical" class="text-lg"></ng-icon>
             </button>
         </div>
@@ -33,10 +33,10 @@
 
     <!-- Pinned Message Bar -->
     <div
-        class="bg-card/90 backdrop-blur px-4 py-2 border-b border-border flex items-center justify-between text-xs cursor-pointer">
+        class="bg-card/90 backdrop-blur px-4 py-2 border-b border-border flex items-center justify-between text-xs cursor-pointer select-none transition-colors duration-150">
         <div class="flex items-center gap-2 border-l-2 border-red-500 pl-2 overflow-hidden">
             <div class="flex flex-col">
-                <span class="text-[11px] font-semibold text-red-600">Pinned Messages</span>
+                <span class="text-[11px] font-semibold text-red-600 dark:text-red-400">Pinned Messages</span>
                 <span class="text-muted-foreground truncate max-w-xl">Pinned message preview goes here...</span>
             </div>
         </div>
@@ -45,72 +45,171 @@
 
     <!-- Message History -->
     <div #scrollContainer
-        class="flex-1 overflow-y-auto p-4 space-y-3 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
+        class="flex-1 overflow-y-auto p-4 space-y-4 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
         @for (msg of chatService.currentMessages(); track msg.id) {
-        <div class="flex flex-col" [class.items-end]="msg.isSender" [class.items-start]="!msg.isSender">
+        <div class="flex flex-col relative group transition-all duration-150" [class.items-end]="msg.isSender"
+            [class.items-start]="!msg.isSender">
 
+            <!-- Message Bubble Container -->
             <div [hlmContextMenuTrigger]="msgMenu" [ngClass]="msg.isSender 
                     ? 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/60 rounded-2xl rounded-br-sm' 
                     : 'bg-card border border-border rounded-2xl rounded-bl-sm'"
-                class="max-w-[75%] p-3 shadow-sm relative group cursor-pointer">
+                class="max-w-[75%] p-3 shadow-sm relative cursor-pointer select-text transition-all duration-150">
 
-                <p class="text-sm text-foreground whitespace-pre-wrap break-words">
+                <!-- متن پیام -->
+                <p class="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
                     {{ msg.text }}
                 </p>
+
+                <!-- نشانگر واکنش‌ها روی پیام -->
+                @if (msg.reactions && msg.reactions.length > 0) {
+                <div hlmBubbleReactions
+                    class="absolute -bottom-3 flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/95 dark:bg-zinc-900/95 px-1.5 py-0.5 text-xs shadow-md backdrop-blur-sm select-none z-10 animate-in fade-in zoom-in-75 duration-200 ease-out"
+                    [class.right-2]="msg.isSender" [class.left-2]="!msg.isSender">
+                    @for (summary of getReactionSummary(msg); track summary.emoji) {
+                    <button type="button" (click)="onBadgeClick(msg, summary.emoji, $event)"
+                        [title]="summary.users.join(', ')" [class.bg-zinc-200]="summary.hasCurrentUser"
+                        [class.dark:bg-zinc-800]="summary.hasCurrentUser" [class.border]="summary.hasCurrentUser"
+                        [class.border-zinc-400]="summary.hasCurrentUser"
+                        [class.dark:border-zinc-600]="summary.hasCurrentUser"
+                        class="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:scale-110 active:scale-95 transition-transform duration-150 cursor-pointer">
+                        <span class="text-xs">{{ summary.emoji }}</span>
+                        @if (summary.count > 1) {
+                        <span class="text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">{{ summary.count
+                            }}</span>
+                        }
+                    </button>
+                    }
+                </div>
+                }
+
             </div>
 
+            <!-- منوی کلیک راست (Context Menu) -->
             <ng-template #msgMenu>
                 <hlm-dropdown-menu
-                    class="w-60 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl">
+                    class="w-64 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 ease-out">
 
-                    <!-- Menu Options -->
-                    <button hlmDropdownMenuItem (click)="onReply(msg)"
-                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
-                        <ng-icon name="lucideReply" class="size-4 text-muted-foreground" />
-                        <span class="text-sm">Reply</span>
-                    </button>
-
-                    <button hlmDropdownMenuItem (click)="onCopy(msg)"
-                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
-                        <ng-icon name="lucideCopy" class="size-4 text-muted-foreground" />
-                        <span class="text-sm">Copy Text</span>
-                    </button>
-
-                    <button hlmDropdownMenuItem (click)="onForward(msg)"
-                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
-                        <ng-icon name="lucideForward" class="size-4 text-muted-foreground" />
-                        <span class="text-sm">Forward</span>
-                    </button>
-
-                    <button hlmDropdownMenuItem (click)="onPin(msg)"
-                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
-                        <ng-icon name="lucidePin" class="size-4 text-muted-foreground" />
-                        <span class="text-sm">Pin</span>
-                    </button>
-
-                    <hlm-dropdown-menu-separator class="my-1 border-border/40" />
-
-                    <button hlmDropdownMenuItem variant="destructive" (click)="onDelete(msg)"
-                        class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
-                        <ng-icon name="lucideTrash2" class="size-4" />
-                        <span class="text-sm font-medium">Delete Message</span>
-                    </button>
-
-                    <hlm-dropdown-menu-separator class="my-1.5 border-border/40" />
-
-                    <!-- Quick Reactions -->
-                    <div class="relative mt-1 px-1 py-1 bg-muted/50 rounded-lg border border-border/30">
-                        <div (wheel)="onEmojiWheel($event)"
-                            class="flex items-center gap-1.5 overflow-x-auto scroll-smooth py-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                            @for (emoji of ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨',
-                            '⚡']; track emoji) {
-                            <button type="button" (click)="onReaction(msg, emoji)"
-                                class="flex-shrink-0 flex items-center justify-center size-8 rounded-full hover:bg-accent hover:scale-125 active:scale-95 transition-all duration-150 text-base select-none">
-                                {{ emoji }}
+                    <!-- ۱. حالت اول: صفحه نمایش لیست ری‌اکشن‌ها (Detail View - تلگرامی از راست به چپ) -->
+                    @if (showingReactionsForMsgId === msg.id) {
+                    <div class="flex flex-col animate-in fade-in slide-in-from-right-3 duration-200 ease-out">
+                        <!-- هدر و دکمه بازگشت -->
+                        <div
+                            class="flex items-center justify-between px-2 py-2 border-b border-border/40 mb-1 select-none">
+                            <button type="button" (click)="closeReactionsDetail($event)"
+                                class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer">
+                                <ng-icon name="lucideArrowLeft" class="size-4" />
+                                <span>Back</span>
                             </button>
+                            <span class="text-xs font-bold text-foreground">Reactions ({{ msg.reactions?.length || 0
+                                }})</span>
+                        </div>
+
+                        <!-- لیست اسکرول‌خور کاربران و ایموجی‌ها -->
+                        <div class="flex flex-col gap-1 max-h-56 overflow-y-auto px-1 py-1 [scrollbar-width:thin]">
+                            @for (reaction of msg.reactions; track reaction.userId) {
+                            <div
+                                class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-accent/60 transition-colors duration-150">
+                                <div class="flex items-center gap-2.5 truncate">
+                                    <div
+                                        class="size-7 rounded-full bg-zinc-200 dark:bg-zinc-800 text-foreground flex items-center justify-center text-xs font-bold shrink-0">
+                                        {{ reaction.userName.charAt(0) }}
+                                    </div>
+                                    <div class="flex flex-col truncate">
+                                        <span class="text-xs font-medium text-foreground truncate">{{ reaction.userName
+                                            }}</span>
+                                        @if (reaction.userId === currentUserId) {
+                                        <span
+                                            class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">You</span>
+                                        }
+                                    </div>
+                                </div>
+                                <span class="text-base shrink-0 select-none">{{ reaction.emoji }}</span>
+                            </div>
                             }
                         </div>
                     </div>
+                    }
+
+                    <!-- ۲. حالت دوم: منوی اصلی اقدامات پیام (اسلاید ملایم از چپ هنگام برگشت) -->
+                    @else {
+                    <div class="flex flex-col animate-in fade-in slide-in-from-left-3 duration-200 ease-out">
+
+                        <button hlmDropdownMenuItem (click)="onReply(msg)"
+                            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors duration-150">
+                            <ng-icon name="lucideReply" class="size-4 text-muted-foreground" />
+                            <span class="text-sm">Reply</span>
+                        </button>
+
+                        <button hlmDropdownMenuItem (click)="onCopy(msg)"
+                            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors duration-150">
+                            <ng-icon name="lucideCopy" class="size-4 text-muted-foreground" />
+                            <span class="text-sm">Copy Text</span>
+                        </button>
+
+                        <button hlmDropdownMenuItem (click)="onForward(msg)"
+                            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors duration-150">
+                            <ng-icon name="lucideForward" class="size-4 text-muted-foreground" />
+                            <span class="text-sm">Forward</span>
+                        </button>
+
+                        <button hlmDropdownMenuItem (click)="onPin(msg)"
+                            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors duration-150">
+                            <ng-icon name="lucidePin" class="size-4 text-muted-foreground" />
+                            <span class="text-sm">Pin</span>
+                        </button>
+
+                        <!-- دکمه Reactions (دقیقاً بالای Delete) -->
+
+
+                        <hlm-dropdown-menu-separator class="my-1 border-border/40" />
+
+                        <button hlmDropdownMenuItem variant="destructive" (click)="onDelete(msg)"
+                            class="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-destructive hover:bg-destructive/10 transition-colors duration-150">
+                            <ng-icon name="lucideTrash2" class="size-4" />
+                            <span class="text-sm font-medium">Delete Message</span>
+                        </button>
+
+                        <hlm-dropdown-menu-separator class="my-1 border-border/40" />
+
+                        @if (msg.reactions && msg.reactions.length > 0) {
+                        <button type="button" (click)="openReactionsDetail(msg.id, $event)"
+                            class="relative flex w-full cursor-pointer select-none items-center justify-between rounded-lg px-3 py-2 text-sm outline-none transition-colors duration-150 hover:bg-accent hover:text-accent-foreground">
+                            <div class="flex items-center gap-2.5">
+                                <ng-icon name="lucideSmile" class="size-4 text-muted-foreground" />
+                                <span class="font-medium">Reactions</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span
+                                    class="text-[11px] font-semibold bg-zinc-200 dark:bg-zinc-800 text-foreground px-1.5 py-0.5 rounded-md">
+                                    {{ msg.reactions.length }}
+                                </span>
+                                <ng-icon name="lucideChevronRight" class="size-4 text-muted-foreground" />
+                            </div>
+                        </button>
+                        }
+
+                        <!-- نوار واکنش سریع (پایین‌ترین بخش منو) -->
+                        <div
+                            class="p-1 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl border border-zinc-200 dark:border-zinc-800 mt-1">
+                            <div (wheel)="onEmojiWheel($event)"
+                                class="flex items-center gap-1.5 overflow-x-auto scroll-smooth p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                @for (emoji of quickReactions; track emoji) {
+                                <button type="button" hlmDropdownMenuItem (click)="onReaction(msg, emoji)"
+                                    [class.bg-zinc-200]="getUserReaction(msg) === emoji"
+                                    [class.dark:bg-zinc-800]="getUserReaction(msg) === emoji"
+                                    [class.border-zinc-400]="getUserReaction(msg) === emoji"
+                                    [class.dark:border-zinc-600]="getUserReaction(msg) === emoji"
+                                    [class.border]="getUserReaction(msg) === emoji"
+                                    class="flex-shrink-0 flex items-center justify-center size-8 rounded-lg hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70 hover:scale-110 active:scale-95 transition-transform duration-150 text-base select-none cursor-pointer">
+                                    {{ emoji }}
+                                </button>
+                                }
+                            </div>
+                        </div>
+
+                    </div>
+                    }
 
                 </hlm-dropdown-menu>
             </ng-template>
@@ -140,7 +239,7 @@
                 (change)="onFilePicked($event, 'camera')" />
 
             <button type="button" (click)="toggleAttachmentMenu($event)"
-                class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all shrink-0 cursor-pointer"
+                class="inline-flex items-center justify-center size-10 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer"
                 [class.bg-accent]="isAttachmentOpen()" [class.text-foreground]="isAttachmentOpen()">
                 <ng-icon name="lucidePaperclip" class="text-xl"></ng-icon>
             </button>
@@ -148,27 +247,29 @@
             <!-- Attachment Menu Dropdown -->
             @if (isAttachmentOpen()) {
             <div
-                class="absolute bottom-full left-0 mb-3 w-52 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 origin-bottom-left">
+                class="absolute bottom-full left-0 mb-3 w-52 p-1.5 rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 zoom-in-95 duration-200 ease-out origin-bottom-left">
 
                 <!-- Photo / Video -->
                 <button type="button" (click)="mediaInput.click(); isAttachmentOpen.set(false)"
-                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideImage" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors duration-150 group cursor-pointer">
+                    <ng-icon name="lucideImage"
+                        class="text-lg group-hover:scale-110 transition-transform duration-150"></ng-icon>
                     <span class="text-sm font-medium">Photo or Video</span>
                 </button>
 
                 <!-- Document -->
                 <button type="button" (click)="docInput.click(); isAttachmentOpen.set(false)"
-                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideFileText" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors duration-150 group cursor-pointer">
+                    <ng-icon name="lucideFileText"
+                        class="text-lg group-hover:scale-110 transition-transform duration-150"></ng-icon>
                     <span class="text-sm font-medium">Document</span>
                 </button>
 
                 <!-- Audio -->
                 <button type="button" (click)="audioInput.click(); isAttachmentOpen.set(false)"
-                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors duration-150 group cursor-pointer">
                     <ng-icon name="lucideHeadphones"
-                        class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                        class="text-lg group-hover:scale-110 transition-transform duration-150"></ng-icon>
                     <span class="text-sm font-medium">Audio</span>
                 </button>
 
@@ -176,8 +277,9 @@
 
                 <!-- Camera -->
                 <button type="button" (click)="cameraInput.click(); isAttachmentOpen.set(false)"
-                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors group cursor-pointer">
-                    <ng-icon name="lucideCamera" class="text-lg group-hover:scale-110 transition-transform"></ng-icon>
+                    class="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent text-foreground transition-colors duration-150 group cursor-pointer">
+                    <ng-icon name="lucideCamera"
+                        class="text-lg group-hover:scale-110 transition-transform duration-150"></ng-icon>
                     <span class="text-sm font-medium">Camera</span>
                 </button>
             </div>
@@ -187,11 +289,11 @@
         <!-- Input Box & Emoji Picker -->
         <div class="flex-1 relative flex items-center" id="emoji-wrapper">
             <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..."
-                class="w-full bg-accent/40 border border-transparent focus:border-red-500 focus:bg-background rounded-full px-4 py-2.5 text-sm outline-none transition-all pr-10" />
+                class="w-full bg-accent/40 border border-transparent focus:border-red-500 focus:bg-background rounded-full px-4 py-2.5 text-sm outline-none transition-all duration-150 pr-10" />
 
             <!-- Smile Toggle Button -->
             <button type="button" (click)="toggleEmojiMenu($event)"
-                class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
                 [class.text-red-500]="isEmojiOpen()">
                 <ng-icon name="lucideSmile" class="text-lg"></ng-icon>
             </button>
@@ -199,7 +301,7 @@
             <!-- WhatsApp-Style Emoji Picker Window -->
             @if (isEmojiOpen()) {
             <div
-                class="absolute bottom-full right-0 mb-3 w-80 sm:w-[380px] h-[390px] rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in zoom-in-95 duration-150 origin-bottom-right">
+                class="absolute bottom-full right-0 mb-3 w-80 sm:w-[380px] h-[390px] rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-bottom-2 zoom-in-95 duration-200 ease-out origin-bottom-right">
 
                 <!-- پنل داخلی ایموجی‌پیکر -->
                 <div class="flex-1 overflow-hidden relative">
@@ -207,38 +309,18 @@
                     </emoji-picker>
                 </div>
 
-                <div class="h-12 bg-zinc-950/80 border-t border-zinc-800/80 px-4 flex items-center justify-between select-none">
-                    
+                <div
+                    class="h-12 bg-zinc-950/80 border-t border-zinc-800/80 px-4 flex items-center justify-between select-none">
                     <div class="flex items-center gap-6 text-[13px] font-bold tracking-wider">
                         <button type="button" (click)="activeTab = 'emoji'"
-                            class="relative py-3 transition-colors uppercase"
-                            [class.text-red-500]="activeTab === 'emoji'"
-                            [class.text-zinc-400]="activeTab !== 'emoji'">
+                            class="relative py-3 transition-colors duration-150 uppercase cursor-pointer"
+                            [class.text-red-500]="activeTab === 'emoji'" [class.text-zinc-400]="activeTab !== 'emoji'">
                             EMOJI
                             @if (activeTab === 'emoji') {
-                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
+                            <span
+                                class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full animate-in fade-in duration-150"></span>
                             }
                         </button>
-
-                        <!-- <button type="button" (click)="activeTab = 'gif'"
-                            class="relative py-3 transition-colors uppercase"
-                            [class.text-red-500]="activeTab === 'gif'"
-                            [class.text-zinc-400]="activeTab !== 'gif'">
-                            GIF
-                            @if (activeTab === 'gif') {
-                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
-                            }
-                        </button>
-
-                        <button type="button" (click)="activeTab = 'sticker'"
-                            class="relative py-3 transition-colors uppercase"
-                            [class.text-red-500]="activeTab === 'sticker'"
-                            [class.text-zinc-400]="activeTab !== 'sticker'">
-                            STICKER
-                            @if (activeTab === 'sticker') {
-                            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500 rounded-full"></span>
-                            }
-                        </button> -->
                     </div>
                 </div>
             </div>
@@ -247,7 +329,7 @@
 
         <!-- Send Button -->
         <button (click)="send()" [disabled]="!messageText.trim()"
-            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition shadow-md shadow-red-500/20 shrink-0 cursor-pointer">
+            class="w-10 h-10 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white flex items-center justify-center transition-all duration-150 shadow-md shadow-red-500/20 shrink-0 cursor-pointer active:scale-95">
             <ng-icon name="lucideSend" class="text-base"></ng-icon>
         </button>
     </footer>

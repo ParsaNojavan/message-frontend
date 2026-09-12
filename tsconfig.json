@@ -29,7 +29,8 @@
       "@spartan-ng/helm/badge": ["./libs/ui/badge/src/index.ts"],
       "@spartan-ng/helm/dialog": ["./libs/ui/dialog/src/index.ts"],
       "@spartan-ng/helm/context-menu": ["./libs/ui/context-menu/src/index.ts"],
-      "@spartan-ng/helm/dropdown-menu": ["./libs/ui/dropdown-menu/src/index.ts"]
+      "@spartan-ng/helm/dropdown-menu": ["./libs/ui/dropdown-menu/src/index.ts"],
+      "@spartan-ng/helm/bubble": ["./libs/ui/bubble/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
