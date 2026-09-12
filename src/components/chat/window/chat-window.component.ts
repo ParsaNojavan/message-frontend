@@ -35,7 +35,9 @@ import {
   lucideFileText,
   lucideHeadphones,
   lucideCamera,
-  lucideDelete
+  lucideDelete,
+  lucideUsers,
+  lucideArrowLeft,
 } from '@ng-icons/lucide';
 
 // Spartan UI New Imports
@@ -43,6 +45,8 @@ import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
+import { HlmBubbleImports } from '@spartan-ng/helm/bubble';
+import { MessageReaction, ReactionSummaryItem } from '../../../models/message.model';
 import {
   UserProfileModalComponent,
   UserProfileData,
@@ -63,7 +67,7 @@ import {
     HlmButtonImports,
     HlmContextMenuImports,
     HlmDropdownMenuImports,
-    HlmAvatarImports,
+    HlmBubbleImports,
     UserProfileModalComponent
   ],
   providers: [
@@ -86,7 +90,9 @@ import {
       lucideFileText,
       lucideHeadphones,
       lucideCamera,
-      lucideDelete
+      lucideDelete,
+      lucideUsers,
+      lucideArrowLeft
     })
   ],
   templateUrl: './chat-window.component.html'
@@ -96,10 +102,16 @@ export class ChatWindowComponent implements AfterViewChecked {
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
+  readonly currentUserId = 'current-user-id';
+  readonly currentUserName = 'You';
+
   isAttachmentOpen = signal(false);
   isEmojiOpen = signal(false);
   activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
   isNotificationsEnabled = signal(true);
+  showingReactionsForMsgId: string | number | null = null;
+
+  quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
   selectedUser = computed<UserProfileData>(() => {
     const activeName = this.chatService.activeConversation()?.name || 'Unknown';
 
@@ -120,9 +132,9 @@ export class ChatWindowComponent implements AfterViewChecked {
   ]);
 
   chatVideos = signal<VideoItem[]>([
-    { 
-      thumbnail: 'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D8%AA%D8%B1%D8%B3%D9%86%D8%A7%DA%A9-8k.webp', 
-      duration: '0:42' 
+    {
+      thumbnail: 'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D8%AA%D8%B1%D8%B3%D9%86%D8%A7%DA%A9-8k.webp',
+      duration: '0:42'
     }
   ]);
 
@@ -155,7 +167,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-
   deleteLastChar() {
     if (!this.messageText) return;
     const chars = Array.from(this.messageText);
@@ -175,7 +186,6 @@ export class ChatWindowComponent implements AfterViewChecked {
   }
 
   onAttachmentSelect(type: string) {
-    console.log('Selected attachment type:', type);
     this.isAttachmentOpen.set(false);
   }
 
@@ -224,7 +234,65 @@ export class ChatWindowComponent implements AfterViewChecked {
   }
 
   onReaction(msg: any, emoji: string) {
-    console.log('Reaction:', emoji, 'on message:', msg.id);
+    if (!msg.reactions) {
+      msg.reactions = [];
+    }
+
+    const existingIndex = msg.reactions.findIndex((r: any) =>
+      typeof r === 'object' ? r.userId === this.currentUserId : false
+    );
+
+    if (existingIndex > -1) {
+      if (msg.reactions[existingIndex].emoji === emoji) {
+        msg.reactions.splice(existingIndex, 1);
+      } else {
+        msg.reactions[existingIndex].emoji = emoji;
+      }
+    } else {
+      msg.reactions.push({
+        userId: this.currentUserId,
+        userName: this.currentUserName,
+        emoji: emoji
+      });
+    }
+  }
+
+  getUserReaction(msg: any): string | null {
+    if (!msg.reactions || !Array.isArray(msg.reactions)) return null;
+    const found = msg.reactions.find((r: any) =>
+      typeof r === 'object' ? r.userId === this.currentUserId : false
+    );
+    return found ? found.emoji : null;
+  }
+
+  getReactionSummary(msg: any): ReactionSummaryItem[] {
+    if (!msg.reactions || !Array.isArray(msg.reactions) || msg.reactions.length === 0) {
+      return [];
+    }
+
+    const summaryMap = new Map<string, { count: number; users: string[]; hasCurrentUser: boolean }>();
+
+    for (const item of msg.reactions) {
+      const emoji = typeof item === 'object' ? item.emoji : item;
+      const userName = typeof item === 'object' ? item.userName : 'Unknown';
+      const isCurrent = typeof item === 'object' ? item.userId === this.currentUserId : false;
+
+      const current = summaryMap.get(emoji) || { count: 0, users: [], hasCurrentUser: false };
+      current.count++;
+      current.users.push(userName);
+      if (isCurrent) current.hasCurrentUser = true;
+      summaryMap.set(emoji, current);
+    }
+
+    return Array.from(summaryMap.entries()).map(([emoji, data]) => ({
+      emoji,
+      ...data
+    }));
+  }
+
+  onBadgeClick(msg: any, emoji: string, event: MouseEvent) {
+    event.stopPropagation();
+    this.onReaction(msg, emoji);
   }
 
   onEmojiWheel(event: WheelEvent): void {
@@ -250,5 +318,22 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   onDirectChatClicked() {
     console.log('Direct chat initiated from profile dialog');
+  }
+
+  getReactionsList(msg: any): MessageReaction[] {
+    if (!msg?.reactions) return [];
+    return Array.isArray(msg.reactions) ? msg.reactions : [msg.reactions];
+  }
+
+  openReactionsDetail(msgId: string | number, event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.showingReactionsForMsgId = msgId;
+  }
+
+  closeReactionsDetail(event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.showingReactionsForMsgId = null;
   }
 }
