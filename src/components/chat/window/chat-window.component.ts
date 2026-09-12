@@ -46,7 +46,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmBubbleImports } from '@spartan-ng/helm/bubble';
-import { MessageReaction, ReactionSummaryItem } from '../../../models/message.model';
+import { Message, MessageReaction, ReactionSummaryItem } from '../../../models/message.model';
 import {
   UserProfileModalComponent,
   UserProfileData,
@@ -54,6 +54,7 @@ import {
   FileItem,
   GroupItem
 } from '../modals/user-dialog.component';
+import { SearchMessagesDialogComponent } from '../modals/search-message.component';
 
 @Component({
   selector: 'app-chat-window',
@@ -68,7 +69,8 @@ import {
     HlmContextMenuImports,
     HlmDropdownMenuImports,
     HlmBubbleImports,
-    UserProfileModalComponent
+    UserProfileModalComponent,
+    SearchMessagesDialogComponent
   ],
   providers: [
     provideIcons({
@@ -110,6 +112,7 @@ export class ChatWindowComponent implements AfterViewChecked {
   activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
   isNotificationsEnabled = signal(true);
   showingReactionsForMsgId: string | number | null = null;
+  highlightedMessageId = signal<string | number | null>(null);
 
   quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
   selectedUser = computed<UserProfileData>(() => {
@@ -335,5 +338,19 @@ export class ChatWindowComponent implements AfterViewChecked {
     event.stopPropagation();
     event.preventDefault();
     this.showingReactionsForMsgId = null;
+  }
+
+  scrollToMessage(message: Message) {
+    if (!message?.id) return;
+
+    setTimeout(() => {
+      const element = document.getElementById(`msg-${message.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        this.highlightedMessageId.set(message.id);
+        setTimeout(() => this.highlightedMessageId.set(null), 1500);
+      }
+    }, 100);
   }
 }

@@ -20,10 +20,9 @@
                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucidePhone" class="text-lg"></ng-icon>
             </button>
-            <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
-                <ng-icon name="lucideSearch" class="text-lg"></ng-icon>
-            </button>
+            <app-search-messages-dialog [messages]="chatService.currentMessages()"
+                (messageSelected)="scrollToMessage($event)">
+            </app-search-messages-dialog>
             <button
                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucideMoreVertical" class="text-lg"></ng-icon>
@@ -47,8 +46,11 @@
     <div #scrollContainer
         class="flex-1 overflow-y-auto p-4 space-y-4 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
         @for (msg of chatService.currentMessages(); track msg.id) {
-        <div class="flex flex-col relative group transition-all duration-150" [class.items-end]="msg.isSender"
-            [class.items-start]="!msg.isSender">
+        <div [id]="'msg-' + msg.id" 
+            class="flex flex-col relative group transition-all duration-300 rounded-2xl p-1"
+            [class.items-end]="msg.isSender"
+            [class.items-start]="!msg.isSender"
+            [class.bg-red-500/10]="highlightedMessageId() === msg.id">
 
             <!-- Message Bubble Container -->
             <div [hlmContextMenuTrigger]="msgMenu" [ngClass]="msg.isSender 
@@ -158,9 +160,6 @@
                             <ng-icon name="lucidePin" class="size-4 text-muted-foreground" />
                             <span class="text-sm">Pin</span>
                         </button>
-
-                        <!-- دکمه Reactions (دقیقاً بالای Delete) -->
-
 
                         <hlm-dropdown-menu-separator class="my-1 border-border/40" />
 
