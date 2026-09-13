@@ -130,7 +130,7 @@ export class ChatWindowComponent implements AfterViewChecked {
       phone: '+989144190723',
       isOnline: false,
       lastSeen: 'last seen Wednesday at 18:00',
-      avatarColor: 'bg-red-600',
+      avatarColor: 'bg-emerald-600',
       notificationsEnabled: this.isNotificationsEnabled()
     };
   });
