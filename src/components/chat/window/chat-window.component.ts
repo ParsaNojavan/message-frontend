@@ -55,6 +55,7 @@ import {
   GroupItem
 } from '../modals/user-dialog.component';
 import { SearchMessagesDialogComponent } from '../modals/search-message.component';
+import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload-modal.component';
 
 @Component({
   selector: 'app-chat-window',
@@ -70,7 +71,8 @@ import { SearchMessagesDialogComponent } from '../modals/search-message.componen
     HlmDropdownMenuImports,
     HlmBubbleImports,
     UserProfileModalComponent,
-    SearchMessagesDialogComponent
+    SearchMessagesDialogComponent,
+    MediaUploadModalComponent
   ],
   providers: [
     provideIcons({
@@ -306,15 +308,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  onFilePicked(event: Event, type: 'media' | 'document' | 'audio' | 'camera') {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-
-    const files = Array.from(input.files);
-    console.log(`Selected ${type} files:`, files);
-    input.value = '';
-  }
-
   onNotificationsToggled(enabled: boolean) {
     this.isNotificationsEnabled.set(enabled);
   }
@@ -352,5 +345,19 @@ export class ChatWindowComponent implements AfterViewChecked {
         setTimeout(() => this.highlightedMessageId.set(null), 1500);
       }
     }, 100);
+  }
+
+  @ViewChild('uploadModal') uploadModal!: MediaUploadModalComponent;
+
+  onFilePicked(event: Event, type: 'media' | 'document' | 'audio' | 'camera') {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.uploadModal.open(input.files, type);
+      input.value = '';
+    }
+  }
+
+  handleFileSend(payload: UploadPayload) {
+    console.log('Sending payload:', payload);
   }
 }
