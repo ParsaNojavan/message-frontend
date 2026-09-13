@@ -344,9 +344,13 @@
                 <ng-icon name="lucideArrowLeft" class="text-lg"></ng-icon>
             </button>
 
-            <button
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+            <button hlmBtn variant="outline" size="sm" (click)="this.themeService.toggleTheme()"
+                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                @if (this.themeService.isDarkMode()) {
                 <ng-icon name="lucideSun" class="text-lg"></ng-icon>
+                } @else {
+                <ng-icon name="lucideMoon" class="text-lg"></ng-icon>
+                }
             </button>
         </div>
 
