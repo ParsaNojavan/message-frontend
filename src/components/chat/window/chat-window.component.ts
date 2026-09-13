@@ -56,6 +56,8 @@ import {
 } from '../modals/user-dialog.component';
 import { SearchMessagesDialogComponent } from '../modals/search-message.component';
 import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload-modal.component';
+import { CallPeer, CallService } from '../../../services/call/call.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-chat-window',
@@ -103,6 +105,9 @@ import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload
 })
 export class ChatWindowComponent implements AfterViewChecked {
   readonly chatService = inject(ChatService);
+  readonly callService = inject(CallService);
+  private readonly router = inject(Router);
+
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
@@ -360,4 +365,16 @@ export class ChatWindowComponent implements AfterViewChecked {
   handleFileSend(payload: UploadPayload) {
     console.log('Sending payload:', payload);
   }
+
+  async handleStartCall(peer: CallPeer, isVideo: boolean) {
+    await this.callService.startCall(
+      peer,
+      isVideo,
+      'ws://localhost:7880',
+      'eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiTWVtYmVyLTZhOTZiIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiI2YWEwNWRkMGVhZDAwOTBjM2NmMjZjODMiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsInJvb21BZG1pbiI6ZmFsc2V9LCJpc3MiOiJkZXZrZXkiLCJleHAiOjE3ODkzMTYwNTcsIm5iZiI6MTc4OTMwODg1Nywic3ViIjoiNmE5NmJlZGVmZjE4NWUwNTVmODc3YTgwIn0.U87hzjcYfaBoAF4vU7ADrrpOO8cMwLiRy3csIKAOG2E'
+    );
+
+    this.router.navigate(['/call', peer.id]);
+  }
+
 }

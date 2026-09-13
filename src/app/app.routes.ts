@@ -21,4 +21,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../components/chat/chat-page.component').then(m => m.ChatPageComponent)
   },
+  {
+    path: 'call/:peerId',
+    loadComponent: () =>
+      import('../components/call/call-page.component').then((m) => m.CallPageComponent),
+  },
+  {
+    path: 'support',
+    loadComponent: () =>
+      import('../components/support/support-service.component').then((m) => m.SupportServiceComponent),
+  },
 ];

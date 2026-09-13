@@ -1,0 +1,328 @@
+<div class="h-screen w-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased overflow-hidden">
+
+    <!-- ================= STATE 1: INITIAL API KEY GENERATION MODAL ================= -->
+    @if (!hasKeyConfigured()) {
+    <div class="flex-1 flex items-center justify-center p-6 bg-zinc-50 dark:bg-zinc-950">
+        <div class="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 shadow-xl">
+
+            <!-- Header Icon & Title -->
+            <div class="flex items-center gap-3.5 mb-5">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <ng-icon name="lucideKey" class="text-2xl"></ng-icon>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Support API Key</h2>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Generate credentials for your live chat integration</p>
+                </div>
+            </div>
+
+            <!-- Initial State: Only Show Generate Button -->
+            @if (!generatedKey()) {
+            <p class="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mb-6">
+                Click the button below to generate a secure project API key associated with your current authenticated account.
+            </p>
+
+            <button hlmBtn (click)="generateApiKey()" [disabled]="isGeneratingKey()"
+                class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs font-medium transition-all shadow-sm flex items-center justify-center">
+                @if (isGeneratingKey()) {
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <span>Generating Credentials...</span>
+                } @else {
+                <ng-icon name="lucideSparkles" class="text-sm"></ng-icon>
+                <span>Generate API Key</span>
+                }
+            </button>
+            }
+
+            <!-- Generated State: Show Key, Warning Alert, and Copy Button -->
+            @if (generatedKey(); as key) {
+            <div class="space-y-4 animate-in fade-in duration-200">
+
+                <!-- Spartan Form Field -->
+                <div hlmField class="space-y-1.5">
+                    <label hlmLabel class="text-xs font-medium text-zinc-700 dark:text-zinc-300">Your New API Key</label>
+                    <div class="relative flex items-center">
+                        <input hlmInput readonly [value]="key"
+                            class="w-full text-xs font-mono h-11 pr-24 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-emerald-600 dark:text-emerald-400 rounded-lg select-all" />
+
+                        <button hlmBtn size="sm" variant="outline" (click)="copyApiKey()"
+                            class="absolute right-1.5 h-8 px-2.5 text-xs gap-1.5 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 inline-flex items-center">
+                            <ng-icon [name]="copiedKey() ? 'lucideCheck' : 'lucideCopy'" class="text-xs"></ng-icon>
+                            {{ copiedKey() ? 'Copied' : 'Copy' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Spartan Alert Component -->
+                <div hlmAlert
+                    class="border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 rounded-lg p-3.5 flex gap-3">
+                    <ng-icon name="lucideAlertTriangle" class="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5"></ng-icon>
+                    <div>
+                        <p hlmAlertTitle class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                            Save your API key securely
+                        </p>
+                        <p hlmAlertDescription class="text-[11px] text-amber-700 dark:text-amber-300/80 leading-relaxed mt-0.5">
+                            You can only view this API key once. Please copy and store it safely. For security purposes,
+                            you will not be able to see it again after leaving this screen.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Confirmation / Done Button -->
+                <button hlmBtn (click)="confirmAndProceed()"
+                    class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-all shadow-sm mt-2">
+                    I have saved my API Key & Continue
+                </button>
+            </div>
+            }
+
+        </div>
+    </div>
+    }
+
+    <!-- ================= STATE 2: ACTIVE DASHBOARD & LIVE CHAT ================= -->
+    @else {
+
+    <!-- Top Bar Header -->
+    <header class="h-16 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 shrink-0 z-10">
+        <div class="flex items-center gap-3">
+            <img src="/logo.png" width="40px"/>
+            <div>
+                <h1 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">LinkChain Support Hub</h1>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Real-time visitor interactions & chats</p>
+            </div>
+        </div>
+
+        <!-- Header Right: Masked Key indicator & Integration Code modal trigger -->
+        <div class="flex items-center gap-3">
+
+            <!-- Masked Status with Spartan Badge -->
+            <div class="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-1.5 font-mono text-xs">
+                <span class="text-zinc-400 select-none text-[11px]">API Key:</span>
+                <span class="font-medium text-zinc-600 dark:text-zinc-400">live_pk_••••••••••••</span>
+                <span hlmBadge class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] py-0 px-1.5 ml-1">
+                    Active
+                </span>
+            </div>
+
+            <!-- Integration Modal Trigger -->
+            <button hlmBtn size="sm" (click)="isEmbedDialogOpen.set(true)"
+                class="h-9 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 text-xs shadow-sm inline-flex items-center">
+                <ng-icon name="lucideCode2" class="text-xs"></ng-icon>
+                Integration Code
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- Left Sidebar: Visitor Rooms List -->
+        <aside class="w-80 md:w-96 flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+
+            <!-- Search Bar with Spartan Input -->
+            <div class="p-3.5 border-b border-zinc-100 dark:border-zinc-800/80">
+                <div class="relative">
+                    <ng-icon name="lucideSearch" class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none"></ng-icon>
+                    <input hlmInput type="text" placeholder="Search visitor, message, or path..."
+                        [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
+                        class="pl-9 text-xs h-9 w-full bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 rounded-lg" />
+                </div>
+            </div>
+
+            <!-- Rooms Scroll Container -->
+            <div class="flex-1 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                @for (room of filteredRooms(); track room.id) {
+                <div (click)="selectRoom(room.id)" 
+                    [class.bg-emerald-500/5]="activeRoomId() === room.id"
+                    [class.dark:bg-emerald-500/10]="activeRoomId() === room.id"
+                    [class.border-l-2]="activeRoomId() === room.id"
+                    [class.border-l-emerald-500]="activeRoomId() === room.id"
+                    class="group relative flex flex-col gap-1.5 p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2 w-2">
+                                @if (room.isOnline) {
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                } @else {
+                                <span class="inline-flex rounded-full h-2 w-2 bg-zinc-400 dark:bg-zinc-600"></span>
+                                }
+                            </span>
+                            <span class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ room.visitorName }}</span>
+                        </div>
+
+                        <span class="text-[10px] text-zinc-400 dark:text-zinc-500">
+                            {{ room.updatedAt | date:'shortTime' }}
+                        </span>
+                    </div>
+
+                    <!-- Message Preview -->
+                    <p class="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-1 pr-6">
+                        {{ room.lastMessage }}
+                    </p>
+
+                    <!-- Location / Page Meta -->
+                    <div class="flex items-center justify-between mt-1 pt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <div class="flex items-center gap-1 truncate">
+                            <ng-icon name="lucideGlobe" class="text-xs shrink-0"></ng-icon>
+                            <span class="truncate font-mono">{{ room.currentPage || '/' }}</span>
+                        </div>
+
+                        @if (room.unreadCount > 0) {
+                        <span hlmBadge class="bg-emerald-600 text-white text-[10px] h-4 min-w-4 px-1 flex items-center justify-center rounded-full border-none">
+                            {{ room.unreadCount }}
+                        </span>
+                        }
+                    </div>
+                </div>
+                } @empty {
+                <div class="flex flex-col items-center justify-center h-48 text-center text-zinc-400 dark:text-zinc-600">
+                    <ng-icon name="lucideMessageSquare" class="text-2xl mb-2 opacity-50"></ng-icon>
+                    <p class="text-xs">No active visitor sessions</p>
+                </div>
+                }
+            </div>
+        </aside>
+
+        <!-- Right Main: Live Chat Window -->
+        <main class="flex-1 flex flex-col bg-zinc-50/40 dark:bg-zinc-950 overflow-hidden">
+            @if (activeRoom(); as room) {
+
+            <!-- Chat Header with Spartan Avatar -->
+            <div class="h-14 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 shrink-0">
+                <div class="flex items-center gap-3">
+                    <hlm-avatar class="h-8 w-8">
+                        <span hlmAvatarFallback class="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold">
+                            {{ room.visitorName.slice(0, 2).toUpperCase() }}
+                        </span>
+                    </hlm-avatar>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{ room.visitorName }}</h2>
+                            <span hlmBadge variant="outline" 
+                                [class.text-emerald-600]="room.isOnline"
+                                [class.border-emerald-500/30]="room.isOnline"
+                                class="text-[10px] py-0 px-1.5 font-normal">
+                                {{ room.isOnline ? 'Online' : 'Offline' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px] text-zinc-400">
+                            <span>IP: {{ room.visitorIp || 'Hidden' }}</span>
+                            <span>•</span>
+                            <span>Loc: {{ room.visitorLocation || 'Unknown' }}</span>
+                            <span>•</span>
+                            <span>Domain: <strong class="text-emerald-600 dark:text-emerald-400 font-mono font-normal">{{ room.currentPage }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Message Logs -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                @for (msg of room.messages; track msg.id) {
+                <div class="flex flex-col" 
+                    [class.items-end]="msg.sender === 'agent'"
+                    [class.items-start]="msg.sender === 'visitor'">
+
+                    <div class="flex items-end gap-2 max-w-[75%]">
+                        <div [class.bg-emerald-600]="msg.sender === 'agent'" 
+                            [class.text-white]="msg.sender === 'agent'"
+                            [class.rounded-br-none]="msg.sender === 'agent'" 
+                            [class.bg-white]="msg.sender === 'visitor'"
+                            [class.dark:bg-zinc-800]="msg.sender === 'visitor'"
+                            [class.text-zinc-800]="msg.sender === 'visitor'"
+                            [class.dark:text-zinc-100]="msg.sender === 'visitor'"
+                            [class.border]="msg.sender === 'visitor'" 
+                            [class.border-zinc-200]="msg.sender === 'visitor'"
+                            [class.dark:border-zinc-700/60]="msg.sender === 'visitor'"
+                            [class.rounded-bl-none]="msg.sender === 'visitor'"
+                            class="rounded-2xl px-4 py-2 text-xs shadow-xs break-words leading-relaxed">
+                            {{ msg.text }}
+                        </div>
+                    </div>
+                    <span class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 px-1">
+                        {{ msg.timestamp | date:'shortTime' }}
+                    </span>
+                </div>
+                }
+            </div>
+
+            <!-- Message Input Form with Spartan Input & Spartan Button -->
+            <div class="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+                <form (ngSubmit)="sendMessage()" class="flex items-center gap-2">
+                    <div hlmField class="flex-1">
+                        <input hlmInput type="text" placeholder="Type your response to visitor..." 
+                            [ngModel]="replyText()"
+                            (ngModelChange)="replyText.set($event)" name="replyText"
+                            class="w-full h-10 px-3 text-xs bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 focus-visible:ring-emerald-500 rounded-lg" />
+                    </div>
+
+                    <button hlmBtn type="submit" [disabled]="!replyText().trim()"
+                        class="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg gap-1.5 text-xs font-medium inline-flex items-center justify-center shrink-0">
+                        <ng-icon name="lucideSend" class="text-xs"></ng-icon>
+                        <span>Send</span>
+                    </button>
+                </form>
+            </div>
+
+            } @else {
+            <!-- Empty State -->
+            <div class="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div class="h-12 w-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 mb-3">
+                    <ng-icon name="lucideMessageSquare" class="text-2xl"></ng-icon>
+                </div>
+                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">No active conversation selected</h3>
+                <p class="text-xs text-zinc-500 max-w-sm mt-1">Select a visitor from the list to start responding in real-time.</p>
+            </div>
+            }
+        </main>
+    </div>
+    }
+
+    <!-- ================= EMBED CODE MODAL / DIALOG ================= -->
+    @if (isEmbedDialogOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+        <div class="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-2xl">
+
+            <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div class="flex items-center gap-2 text-zinc-900 dark:text-zinc-50 font-semibold text-sm">
+                    <ng-icon name="lucideCode2" class="text-emerald-500 text-base"></ng-icon>
+                    Embed Support Widget
+                </div>
+                <button hlmBtn variant="ghost" size="sm" (click)="isEmbedDialogOpen.set(false)"
+                    class="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-sm">
+                    ✕
+                </button>
+            </div>
+
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-3 leading-relaxed">
+                Insert this script snippet before the closing <code class="text-emerald-600 font-mono text-[11px]">&lt;/body&gt;</code> tag of your website. Replace
+                <code class="text-zinc-400 font-mono text-[11px]">YOUR_SAVED_API_KEY</code> with the key you previously saved:
+            </p>
+
+            <div class="relative mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-200 overflow-x-auto">
+                <code>{{ embedCodeSnippet() }}</code>
+                <button hlmBtn size="sm" variant="secondary" (click)="copySnippet()"
+                    class="absolute top-2 right-2 h-7 px-2 text-[11px] gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-none inline-flex items-center">
+                    <ng-icon [name]="copiedSnippet() ? 'lucideCheck' : 'lucideCopy'" class="text-xs"></ng-icon>
+                    {{ copiedSnippet() ? 'Copied' : 'Copy' }}
+                </button>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button hlmBtn variant="outline" size="sm" (click)="isEmbedDialogOpen.set(false)">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+</div>

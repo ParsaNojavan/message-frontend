@@ -12,11 +12,23 @@
         </div>
 
         <div class="flex items-center gap-1 text-muted-foreground">
-            <button
+            <button (click)="handleStartCall(
+                    {
+                        id: 'test-user-123',
+                        name: 'test-user',
+                        avatarUrl: 'https://avatar.iran.liara.run/public/boy',
+                    },true
+                )"
                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucideVideo" class="text-lg"></ng-icon>
             </button>
-            <button
+            <button (click)="handleStartCall(
+                    {
+                        id: 'test-user-123',
+                        name: 'test-user',
+                        avatarUrl: 'https://avatar.iran.liara.run/public/boy',
+                    },false
+                )"
                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-150 shrink-0 cursor-pointer">
                 <ng-icon name="lucidePhone" class="text-lg"></ng-icon>
             </button>
@@ -46,10 +58,8 @@
     <div #scrollContainer
         class="flex-1 overflow-y-auto p-4 space-y-4 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
         @for (msg of chatService.currentMessages(); track msg.id) {
-        <div [id]="'msg-' + msg.id" 
-            class="flex flex-col relative group transition-all duration-300 rounded-2xl p-1"
-            [class.items-end]="msg.isSender"
-            [class.items-start]="!msg.isSender"
+        <div [id]="'msg-' + msg.id" class="flex flex-col relative group transition-all duration-300 rounded-2xl p-1"
+            [class.items-end]="msg.isSender" [class.items-start]="!msg.isSender"
             [class.bg-red-500/10]="highlightedMessageId() === msg.id">
 
             <!-- Message Bubble Container -->
@@ -333,9 +343,7 @@
         </button>
     </footer>
 
-    <app-media-upload-modal 
-        #uploadModal 
-        (fileSent)="handleFileSend($event)">
+    <app-media-upload-modal #uploadModal (fileSent)="handleFileSend($event)">
     </app-media-upload-modal>
 
 </div>
