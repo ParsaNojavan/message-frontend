@@ -31,24 +31,24 @@ type GroupType = 'private' | 'public';
     <hlm-dialog>
       <!-- Modal Trigger Button -->
       <button hlmDialogTrigger
-        class="w-full flex items-center gap-4 px-4 py-3 text-sm text-foreground/90 hover:bg-accent/60 transition-colors">
+        class="w-full flex items-center gap-4 px-4 py-3 text-sm text-foreground/90 hover:bg-accent/60 transition-colors cursor-pointer">
         <ng-icon name="lucideUsers" class="text-xl text-muted-foreground shrink-0"></ng-icon>
         <span class="flex-1 text-left font-medium">New Group</span>
       </button>
 
       <!-- Main Modal Content -->
       <hlm-dialog-content *hlmDialogPortal="let ctx" 
-        class="w-[92vw] sm:max-w-md bg-[#18181b] border-zinc-800 text-zinc-100 p-0 overflow-hidden shadow-2xl rounded-2xl [&>button.absolute]:hidden">
+        class="w-[92vw] sm:max-w-md bg-popover border border-border text-popover-foreground p-0 overflow-hidden shadow-2xl rounded-2xl [&>button.absolute]:hidden">
         
         <!-- Header -->
-        <div class="relative flex items-center justify-center px-4 py-3.5 border-b border-zinc-800/80">
+        <div class="relative flex items-center justify-center px-4 py-3.5 border-b border-border/70">
           <button 
             (click)="ctx.close()" 
-            class="absolute left-3.5 text-zinc-400 hover:text-zinc-100 cursor-pointer">
+            class="absolute left-3.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             <ng-icon name="lucideX" class="text-lg block"></ng-icon>
           </button>
           
-          <h3 hlmDialogTitle class="text-sm font-semibold tracking-wide text-zinc-200">
+          <h3 hlmDialogTitle class="text-sm font-semibold tracking-wide text-foreground">
             Create Group
           </h3>
         </div>
@@ -58,7 +58,7 @@ type GroupType = 'private' | 'public';
           <!-- Group Avatar Upload -->
           <div class="flex justify-center mt-2 mb-6">
             <label class="relative group cursor-pointer">
-              <div class="size-20 rounded-full bg-zinc-900 border border-zinc-700/80 flex items-center justify-center text-zinc-400 group-hover:text-red-500 group-hover:border-red-500/50 transition-all shadow-inner">
+              <div class="size-20 rounded-full bg-accent/40 border border-border flex items-center justify-center text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:border-emerald-500/50 transition-all shadow-inner">
                 <ng-icon name="lucideCamera" class="text-2xl"></ng-icon>
               </div>
               <input type="file" accept="image/*" class="hidden" (change)="onAvatarSelected($event)" />
@@ -74,92 +74,102 @@ type GroupType = 'private' | 'public';
                 [(ngModel)]="groupName"
                 maxLength="128"
                 placeholder=" "
-                class="peer w-full bg-transparent border border-red-500/80 rounded-xl px-4 pt-4 pb-2 text-sm text-zinc-100 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all placeholder-transparent"
+                class="peer w-full bg-transparent border border-border rounded-xl px-4 pt-4 pb-2 text-sm text-foreground focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder-transparent"
               />
               <label 
                 for="groupName"
-                class="absolute left-3 -top-2.5 bg-[#18181b] px-1.5 text-xs text-red-500 font-medium transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:top-3 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-red-500">
+                class="absolute left-3 -top-2.5 bg-popover px-1.5 text-xs text-muted-foreground font-medium transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:text-muted-foreground peer-placeholder-shown:top-3 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-emerald-600 dark:peer-focus:text-emerald-400">
                 Group Name
               </label>
             </div>
-            <div class="flex justify-end px-1 text-[11px] text-zinc-500 font-mono">
+            <div class="flex justify-end px-1 text-[11px] text-muted-foreground font-mono">
               <span>{{ groupName().length }}/128</span>
             </div>
           </div>
 
           <!-- Group Type Selection -->
-          <div class="space-y-3 pt-1 border-t border-zinc-800/60">
-            <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Group Type</span>
+          <div class="space-y-3 pt-1 border-t border-border/60">
+            <span class="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">Group Type</span>
 
             <!-- Private Group Radio Option -->
             <label 
               (click)="groupType.set('private')"
-              class="flex items-start justify-between gap-3 p-3 rounded-xl border border-transparent hover:bg-zinc-800/40 cursor-pointer transition-colors">
+              class="flex items-start justify-between gap-3 p-3 rounded-xl border border-transparent hover:bg-accent/50 cursor-pointer transition-colors"
+              [class.bg-accent/40]="groupType() === 'private'">
               <div class="space-y-1 text-left">
-                <span class="block text-sm font-medium text-zinc-200">Private Group</span>
-                <p class="text-xs text-zinc-400 leading-relaxed">
+                <span class="block text-sm font-medium text-foreground">Private Group</span>
+                <p class="text-xs text-muted-foreground leading-relaxed">
                   Private groups can only be joined via an invite link or direct invitation from administrators.
                 </p>
               </div>
-              <div class="mt-0.5 shrink-0 size-5 rounded-full border border-zinc-600 flex items-center justify-center transition-colors"
-                [class.border-red-500]="groupType() === 'private'">
-                <div *ngIf="groupType() === 'private'" class="size-2.5 rounded-full bg-red-600"></div>
+              <div class="mt-0.5 shrink-0 size-5 rounded-full border border-border flex items-center justify-center transition-colors"
+                [class.border-emerald-600]="groupType() === 'private'"
+                [class.dark:border-emerald-500]="groupType() === 'private'">
+                @if (groupType() === 'private') {
+                  <div class="size-2.5 rounded-full bg-emerald-600 dark:bg-emerald-500"></div>
+                }
               </div>
             </label>
 
             <!-- Public Group Radio Option -->
             <label 
               (click)="groupType.set('public')"
-              class="flex items-start justify-between gap-3 p-3 rounded-xl border border-transparent hover:bg-zinc-800/40 cursor-pointer transition-colors">
+              class="flex items-start justify-between gap-3 p-3 rounded-xl border border-transparent hover:bg-accent/50 cursor-pointer transition-colors"
+              [class.bg-accent/40]="groupType() === 'public'">
               <div class="space-y-1 text-left">
-                <span class="block text-sm font-medium text-zinc-200">Public Group</span>
-                <p class="text-xs text-zinc-400 leading-relaxed">
+                <span class="block text-sm font-medium text-foreground">Public Group</span>
+                <p class="text-xs text-muted-foreground leading-relaxed">
                   Public groups can be found in search, and anyone can join them.
                 </p>
               </div>
-              <div class="mt-0.5 shrink-0 size-5 rounded-full border border-zinc-600 flex items-center justify-center transition-colors"
-                [class.border-red-500]="groupType() === 'public'">
-                <div *ngIf="groupType() === 'public'" class="size-2.5 rounded-full bg-red-600"></div>
+              <div class="mt-0.5 shrink-0 size-5 rounded-full border border-border flex items-center justify-center transition-colors"
+                [class.border-emerald-600]="groupType() === 'public'"
+                [class.dark:border-emerald-500]="groupType() === 'public'">
+                @if (groupType() === 'public') {
+                  <div class="size-2.5 rounded-full bg-emerald-600 dark:bg-emerald-500"></div>
+                }
               </div>
             </label>
           </div>
 
           <!-- Public Group Slug Input (Visible only if Public) -->
-          <div *ngIf="groupType() === 'public'" class="space-y-2 pt-2">
-            <p class="text-xs text-zinc-400 leading-relaxed">
-              People can search for and find your group using this public link.
-            </p>
-            
-            <div class="relative">
-              <div class="flex items-center bg-zinc-900/80 border border-zinc-700/80 rounded-xl px-3 py-2 focus-within:border-red-500 transition-colors">
-                <span class="text-xs text-zinc-500 select-none font-mono">https://linkchain.ir/</span>
-                <input
-                  type="text"
-                  [(ngModel)]="groupSlug"
-                  placeholder="group_name"
-                  class="w-full bg-transparent text-sm text-zinc-100 focus:outline-none font-mono pl-1"
-                />
+          @if (groupType() === 'public') {
+            <div class="space-y-2 pt-2">
+              <p class="text-xs text-muted-foreground leading-relaxed">
+                People can search for and find your group using this public link.
+              </p>
+              
+              <div class="relative">
+                <div class="flex items-center bg-accent/30 border border-border rounded-xl px-3 py-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                  <span class="text-xs text-muted-foreground select-none font-mono">https://linkchain.ir/</span>
+                  <input
+                    type="text"
+                    [(ngModel)]="groupSlug"
+                    placeholder="group_name"
+                    class="w-full bg-transparent text-sm text-foreground focus:outline-none font-mono pl-1 placeholder:text-muted-foreground/60"
+                  />
+                </div>
+                <label class="absolute left-3 -top-2.5 bg-popover px-1 text-[11px] text-muted-foreground font-medium">
+                  Group Link
+                </label>
               </div>
-              <label class="absolute left-3 -top-2.5 bg-[#18181b] px-1 text-[11px] text-zinc-400 font-medium">
-                Group Link
-              </label>
             </div>
-          </div>
+          }
 
         </div>
 
         <!-- Footer Actions -->
-        <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-800/80 bg-zinc-900/30">
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-border/70 bg-accent/20">
           <button 
             (click)="ctx.close()"
-            class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-xl transition-colors">
+            class="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/60 rounded-xl transition-colors cursor-pointer">
             Cancel
           </button>
 
           <button 
             (click)="onCreate(ctx)"
             [disabled]="!groupName().trim()"
-            class="px-5 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl shadow-lg shadow-red-950/40 transition-all duration-150 active:scale-95 cursor-pointer disabled:cursor-not-allowed">
+            class="px-5 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground text-white rounded-xl shadow-md shadow-emerald-600/20 transition-all duration-150 active:scale-95 cursor-pointer disabled:cursor-not-allowed">
             Confirm & Continue
           </button>
         </div>
