@@ -77,16 +77,16 @@ emoji-picker.whatsapp-theme {
   --background: transparent;
   --border-color: transparent;
   --category-emoji-size: 1.15rem;
-  --category-tab-active-color: #ef4444;
+  --category-tab-active-color: #10b981;
   --emoji-size: 1.4rem;
   --emoji-padding: 0.35rem;
-  --indicator-color: #ef4444;
+  --indicator-color: #10b981;
   --input-border-color: #27272a;
   --input-border-radius: 9999px;
   --input-font-color: #f4f4f5;
   --input-placeholder-color: #71717a;
   --input-padding: 0.45rem 1rem;
-  --outline-color: #ef4444;
+  --outline-color: #10b981;
   --num-columns: 8;
 
   width: 100%;

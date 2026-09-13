@@ -52,6 +52,7 @@ import { RecentContact, SearchResultItem } from '../../../models/conversation.mo
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { ThemeService } from '../../../services/theme/theme.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -107,6 +108,7 @@ import { ThemeService } from '../../../services/theme/theme.service';
 export class ChatSidebarComponent {
   readonly chatService = inject(ChatService);
   readonly themeService = inject(ThemeService)
+  readonly router = inject(Router)
 
   currentView = signal<'chats' | 'profile' | 'search'>('chats');
   searchQuery = signal<string>('');
@@ -114,15 +116,15 @@ export class ChatSidebarComponent {
   activeMenuChat = signal<any>(null);
 
   recentContacts = signal<RecentContact[]>([
-    { id: '1', name: 'John', fallbackText: 'J', fallbackBg: 'bg-red-500' },
-    { id: '2', name: 'Kevin', fallbackText: 'K', fallbackBg: 'bg-red-500' },
-    { id: '3', name: 'Nia', fallbackText: 'N', fallbackBg: 'bg-red-500' },
-    { id: '4', name: 'Arman', fallbackText: 'A', fallbackBg: 'bg-red-500' }
+    { id: '1', name: 'John', fallbackText: 'J', fallbackBg: 'bg-emerald-500' },
+    { id: '2', name: 'Kevin', fallbackText: 'K', fallbackBg: 'bg-emerald-500' },
+    { id: '3', name: 'Nia', fallbackText: 'N', fallbackBg: 'bg-emerald-500' },
+    { id: '4', name: 'Arman', fallbackText: 'A', fallbackBg: 'bg-emerald-500' }
   ]);
 
   recentSearches = signal<RecentContact[]>([
-    { id: 'rec-1', name: 'Mom', fallbackText: 'M', fallbackBg: 'bg-red-500' },
-    { id: 'rec-2', name: 'Dad', fallbackText: 'D', fallbackBg: 'bg-red-500' }
+    { id: 'rec-1', name: 'Mom', fallbackText: 'M', fallbackBg: 'bg-emerald-500' },
+    { id: 'rec-2', name: 'Dad', fallbackText: 'D', fallbackBg: 'bg-emerald-500' }
   ]);
 
   allSearchItems = signal<SearchResultItem[]>([
@@ -217,5 +219,9 @@ export class ChatSidebarComponent {
 
   handleAction(action: string) {
     console.log(`Action: ${action} for:`, this.activeMenuChat()?.name);
+  }
+
+  redirectSupport() {
+    this.router.navigate(['/support']);
   }
 }

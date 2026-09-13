@@ -1,4 +1,4 @@
-import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupportChatMessage, SupportVisitorRoom } from '../../models/support.model';
@@ -27,6 +27,7 @@ import {
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-support-service',
@@ -50,6 +51,9 @@ import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
   templateUrl: './support-service.component.html'
 })
 export class SupportServiceComponent {
+
+  readonly router = inject(Router)
+
   // Key lifecycle states
   hasKeyConfigured = signal<boolean>(false);
   generatedKey = signal<string | null>(null);
@@ -199,5 +203,9 @@ export class SupportServiceComponent {
     }));
 
     this.replyText.set('');
+  }
+
+  redirectHome() {
+    this.router.navigate(['/chat'])
   }
 }
