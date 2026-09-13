@@ -24,7 +24,18 @@ import {
   lucideClock,
   lucideTrash2,
   lucideBadgeCheck,
-  lucideBot
+  lucideBot,
+  lucidePhone,
+  lucideMoon,
+  lucideSparkles,
+  lucideBug,
+  lucideLogOut,
+  lucidePinOff,
+  lucideFolderPlus,
+  lucideMessageSquareDot,
+  lucideBellOff,
+  lucideArchive,
+  lucideCheckSquare
 } from '@ng-icons/lucide';
 
 // Spartan UI Imports
@@ -38,6 +49,8 @@ import { SettingsDialogComponent } from '../modals/setting-dialog.component';
 import { CreateChannelDialogComponent } from '../modals/channel-dialog.component';
 import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
 import { RecentContact, SearchResultItem } from '../../../models/conversation.model';
+import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
+import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -53,7 +66,9 @@ import { RecentContact, SearchResultItem } from '../../../models/conversation.mo
     AccountSettingsComponent,
     SettingsDialogComponent,
     CreateChannelDialogComponent,
-    CreateGroupDialogComponent
+    CreateGroupDialogComponent,
+    HlmContextMenuImports,
+    HlmDropdownMenuImports
   ],
   providers: [
     provideIcons({
@@ -77,7 +92,12 @@ import { RecentContact, SearchResultItem } from '../../../models/conversation.mo
       lucideClock,
       lucideTrash2,
       lucideBadgeCheck,
-      lucideBot
+      lucidePinOff,
+      lucideFolderPlus,
+      lucideMessageSquareDot,
+      lucideBellOff,
+      lucideArchive,
+      lucideCheckSquare
     })
   ],
   templateUrl: './chat-sidebar.component.html'
@@ -88,6 +108,7 @@ export class ChatSidebarComponent {
   currentView = signal<'chats' | 'profile' | 'search'>('chats');
   searchQuery = signal<string>('');
   selectedTab = signal<'all' | 'channel' | 'bot' | 'service'>('all');
+  activeMenuChat = signal<any>(null);
 
   recentContacts = signal<RecentContact[]>([
     { id: '1', name: 'John', fallbackText: 'J', fallbackBg: 'bg-red-500' },
@@ -189,5 +210,9 @@ export class ChatSidebarComponent {
 
   onMenuItemClick(action: string): void {
     console.log('Action clicked:', action);
+  }
+
+  handleAction(action: string) {
+    console.log(`Action: ${action} for:`, this.activeMenuChat()?.name);
   }
 }

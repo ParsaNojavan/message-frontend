@@ -51,11 +51,12 @@
 
     <!-- Conversations List -->
     <div class="flex-1 overflow-y-auto divide-y divide-border/50 [scrollbar-width:thin]">
+        <!-- در حلقه تکرار چت‌ها -->
         @for (chat of chatService.conversations(); track chat.id) {
-        <div (click)="chatService.setActiveConversation(chat.id)"
-            [class.bg-red-50]="chatService.activeConversationId() === chat.id"
+        <div (click)="chatService.setActiveConversation(chat.id)" [hlmContextMenuTrigger]="chatMenu"
+            (contextmenu)="activeMenuChat.set(chat)" [class.bg-red-50]="chatService.activeConversationId() === chat.id"
             [class.dark:bg-red-950/20]="chatService.activeConversationId() === chat.id"
-            class="flex items-center gap-3 p-3 hover:bg-accent/60 cursor-pointer transition-colors">
+            class="flex items-center gap-3 p-3 hover:bg-accent/60 cursor-pointer transition-colors select-none">
 
             <hlm-avatar class="w-12 h-12 flex-shrink-0">
                 <img *ngIf="chat.avatar" [src]="chat.avatar" hlmAvatarImage [alt]="chat.name" />
@@ -69,19 +70,75 @@
                     <h4 class="font-semibold text-sm truncate text-foreground">{{ chat.name }}</h4>
                     <span class="text-[11px] text-muted-foreground shrink-0">{{ chat.lastMessageTime }}</span>
                 </div>
-
                 <div class="flex justify-between items-center gap-2">
                     <p class="text-xs text-muted-foreground truncate">{{ chat.lastMessage }}</p>
-                    @if (chat.unreadCount && chat.unreadCount > 0) {
-                    <span hlmBadge
-                        class="inline-flex items-center justify-center bg-red-600 text-white rounded-full text-[10px] leading-none min-w-[18px] h-[18px] px-1 shrink-0">
-                        {{ chat.unreadCount }}
-                    </span>
+                    @if (chat.unreadCount) {
+                    <span
+                        class="bg-red-600 text-white rounded-full text-[10px] px-1.5 py-0.5">{{chat.unreadCount}}</span>
                     }
                 </div>
             </div>
         </div>
         }
+
+        <ng-template #chatMenu>
+            <hlm-dropdown-menu
+                class="w-56 p-1 rounded-xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-md shadow-xl select-none flex flex-col gap-0.5">
+
+                <button hlmDropdownMenuItem (click)="handleAction('profile')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideUser" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">View Profile</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('unpin')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucidePinOff" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Unpin</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('folder')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideFolderPlus" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Add to Folder</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('unread')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideMessageSquareDot" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Mark as unread</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('mute')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideBellOff" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Mute</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('archive')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideArchive" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Archive</span>
+                </button>
+
+                <hlm-dropdown-menu-separator class="my-1 bg-zinc-800/80" />
+
+                <button hlmDropdownMenuItem variant="destructive" (click)="handleAction('delete')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                    <ng-icon name="lucideTrash2" class="size-4 shrink-0" />
+                    <span class="text-[13px] font-medium">Delete Chat</span>
+                </button>
+
+                <button hlmDropdownMenuItem (click)="handleAction('select')"
+                    class="flex items-center gap-3 px-2.5 py-1.5 cursor-pointer rounded-lg hover:bg-accent/80 transition-colors">
+                    <ng-icon name="lucideCheckSquare" class="size-4 text-muted-foreground shrink-0" />
+                    <span class="text-[13px] font-medium">Select</span>
+                </button>
+
+            </hlm-dropdown-menu>
+        </ng-template>
+
+
     </div>
     }
 
