@@ -31,3 +31,9 @@ export interface RecentContact {
   fallbackText: string;
   fallbackBg?: string;
 }
+
+export interface UploadPayload {
+  files: File[];
+  caption: string;
+  type: 'media' | 'document' | 'audio' | 'camera';
+}
