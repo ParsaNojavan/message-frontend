@@ -25,6 +25,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "emoji-picker-element": "^1.29.1",
+    "livekit-client": "^2.22.3",
     "menu": "link:@spartan-ng/brain/menu",
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.5.0",
