@@ -51,6 +51,7 @@ import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
 import { RecentContact, SearchResultItem } from '../../../models/conversation.model';
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
+import { ThemeService } from '../../../services/theme/theme.service';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -97,13 +98,15 @@ import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
       lucideMessageSquareDot,
       lucideBellOff,
       lucideArchive,
-      lucideCheckSquare
+      lucideCheckSquare,
+      lucideMoon
     })
   ],
   templateUrl: './chat-sidebar.component.html'
 })
 export class ChatSidebarComponent {
   readonly chatService = inject(ChatService);
+  readonly themeService = inject(ThemeService)
 
   currentView = signal<'chats' | 'profile' | 'search'>('chats');
   searchQuery = signal<string>('');
