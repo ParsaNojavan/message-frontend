@@ -2,6 +2,11 @@
 
     <!-- Top Header -->
     <header class="h-16 px-4 bg-card border-b border-border flex items-center justify-between z-10 shadow-sm">
+
+        <button hlmBtn variant="ghost" size="sm" (click)="chatService.activeConversationId.set(null)"
+            class="md:hidden h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
+            <ng-icon name="lucideArrowLeft" class="text-lg"></ng-icon>
+        </button>
         <div class="flex items-center gap-3">
             @if (selectedUser()) {
             <app-user-profile-modal [user]="selectedUser()" [photos]="chatPhotos()" [videos]="chatVideos()"
@@ -323,7 +328,8 @@
                     <div class="flex items-center gap-6 text-[13px] font-bold tracking-wider">
                         <button type="button" (click)="activeTab = 'emoji'"
                             class="relative py-3 transition-colors duration-150 uppercase cursor-pointer"
-                            [class.text-emerald-500]="activeTab === 'emoji'" [class.text-zinc-400]="activeTab !== 'emoji'">
+                            [class.text-emerald-500]="activeTab === 'emoji'"
+                            [class.text-zinc-400]="activeTab !== 'emoji'">
                             EMOJI
                             @if (activeTab === 'emoji') {
                             <span
