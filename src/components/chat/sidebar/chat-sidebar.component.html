@@ -25,6 +25,13 @@
                     <ng-icon name="lucideSearch" class="text-lg"></ng-icon>
                 </button>
 
+                <!-- Open Contacts View -->
+                <button (click)="openContacts()"
+                    class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors shrink-0 cursor-pointer"
+                    title="Contacts">
+                    <ng-icon name="lucideUsers" class="text-lg"></ng-icon>
+                </button>
+
                 <button
                     class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors shrink-0 cursor-pointer"
                     title="New Chat">
@@ -140,7 +147,7 @@
     </div>
     }
 
-    <!-- ================= 2. SEARCH VIEW (ZINC + EMERALD THEME) ================= -->
+    <!-- ================= 2. SEARCH VIEW ================= -->
     @else if (currentView() === 'search') {
     <div class="flex flex-col h-full bg-card animate-in fade-in-50 duration-200">
 
@@ -220,10 +227,7 @@
 
         <!-- Search Content Body -->
         <div class="flex-1 overflow-y-auto [scrollbar-width:thin]">
-
-            <!-- Case A: Query is Empty -->
             @if (!searchQuery().trim()) {
-
             <!-- Horizontal Recent Contacts -->
             <div class="p-3 border-b border-border/40">
                 <div class="flex items-center gap-4 overflow-x-auto no-scrollbar py-1">
@@ -272,12 +276,8 @@
                     }
                 </div>
             </div>
-            }
-
-            <!-- Case B: Display Search Results -->
-            @else {
+            } @else {
             <div class="p-3 space-y-2">
-
                 <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 px-1 mb-2">Conversations</div>
 
                 @if (filteredResults().length === 0) {
@@ -290,7 +290,6 @@
                 <div (click)="onSelectResult(result)"
                     class="flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group border border-transparent hover:border-border/40">
 
-                    <!-- User/Channel Info -->
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="size-11 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm shrink-0 shadow"
                             [ngClass]="result.fallbackBg || 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'">
@@ -305,24 +304,19 @@
                             <div class="flex items-center gap-1.5">
                                 <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate">{{
                                     result.name }}</h4>
-
-                                <!-- Verified Badge -->
                                 @if (result.verified) {
                                 <ng-icon name="lucideBadgeCheck" class="text-emerald-500 text-base shrink-0"></ng-icon>
                                 }
-                                <!-- Channel/Group Indicator -->
                                 @if (result.type === 'channel') {
                                 <ng-icon name="lucideUsers" class="text-zinc-400 dark:text-zinc-500 text-xs shrink-0"></ng-icon>
                                 }
                             </div>
-
                             <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
                                 {{ result.username || result.subInfo }}
                             </p>
                         </div>
                     </div>
 
-                    <!-- Action Button in Emerald Theme -->
                     @if (result.actionText) {
                     <button
                         class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-all shrink-0 ml-2 shadow-sm cursor-pointer">
@@ -332,7 +326,6 @@
                 </div>
                 }
 
-                <!-- Show More Button -->
                 @if (filteredResults().length > 0) {
                 <button
                     class="w-full py-3 flex items-center justify-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-medium transition-colors cursor-pointer pt-4">
@@ -342,12 +335,113 @@
                 }
             </div>
             }
+        </div>
+    </div>
+    }
+
+    <!-- ================= 3. CONTACTS VIEW (NEW) ================= -->
+    @else if (currentView() === 'contacts') {
+    <div class="flex flex-col h-full bg-card animate-in fade-in-50 duration-200">
+
+        <!-- Contacts Header -->
+        <div class="p-3 border-b border-border space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <button (click)="backToChats()"
+                        class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                        title="Back">
+                        <ng-icon name="lucideArrowLeft" class="text-lg"></ng-icon>
+                    </button>
+                    <h3 class="font-bold text-base text-zinc-900 dark:text-zinc-100">Contacts</h3>
+                </div>
+
+                <div class="flex items-center gap-1">
+<app-add-contact-dialog (contactAdded)="onNewContactAdded($event)"></app-add-contact-dialog>
+                </div>
+            </div>
+
+            <!-- Contacts Search Input -->
+            <div class="relative flex items-center w-full">
+                <ng-icon name="lucideSearch" class="absolute left-3.5 text-zinc-400 text-sm pointer-events-none"></ng-icon>
+                <input type="text" [ngModel]="contactsSearchQuery()" (ngModelChange)="contactsSearchQuery.set($event)"
+                    placeholder="Search contacts..."
+                    class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-9 pr-9 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none transition-all shadow-inner" />
+
+                @if (contactsSearchQuery()) {
+                <button (click)="contactsSearchQuery.set('')"
+                    class="absolute right-2 inset-y-0 my-auto inline-flex items-center justify-center size-6 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+                    <ng-icon name="lucideX" class="text-xs"></ng-icon>
+                </button>
+                }
+            </div>
+        </div>
+
+        <!-- Contacts Content Body -->
+        <div class="flex-1 overflow-y-auto [scrollbar-width:thin]">
+
+            <!-- Grouped Contact List -->
+            @if (groupedContacts().length === 0) {
+            <div class="text-center py-16 text-zinc-400 dark:text-zinc-500 text-xs">
+                No contacts found
+            </div>
+            }
+
+            @for (group of groupedContacts(); track group.letter) {
+            <div class="relative">
+                <div class="sticky top-0 z-10 px-4 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-zinc-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-y border-border/30">
+                    {{ group.letter }}
+                </div>
+
+                <div class="divide-y divide-border/20">
+                    @for (contact of group.contacts; track contact.id) {
+                    <div (click)="onSelectContact(contact)"
+                        class="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group">
+                        
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="relative shrink-0">
+                                <hlm-avatar class="size-10">
+                                    <img  hlmAvatarImage [alt]="contact.name" />
+                                    <span hlmAvatarFallback class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold">
+                                        {{ contact.name.charAt(0) }}
+                                    </span>
+                                </hlm-avatar>
+
+                                @if (contact.online) {
+                                <span class="absolute bottom-0 right-0 size-2.5 bg-emerald-500 border-2 border-card rounded-full"></span>
+                                }
+                            </div>
+
+                            <div class="min-w-0">
+                                <h4 class="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                    {{ contact.name }}
+                                </h4>
+                                <p class="text-xs truncate"
+                                    [class.text-emerald-600]="contact.online"
+                                    [class.dark:text-emerald-400]="contact.online"
+                                    [class.text-zinc-500]="!contact.online"
+                                    [class.dark:text-zinc-400]="!contact.online">
+                                    {{ contact.lastSeen }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Message Action -->
+                        <button (click)="$event.stopPropagation(); onSelectContact(contact)"
+                            class="size-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/50 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                            title="Message">
+                            <ng-icon name="lucideMessageSquare" class="text-base"></ng-icon>
+                        </button>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
 
         </div>
     </div>
     }
 
-    <!-- ================= 3. PROFILE VIEW ================= -->
+    <!-- ================= 4. PROFILE VIEW ================= -->
     @else if (currentView() === 'profile') {
     <div class="flex-1 flex flex-col h-full overflow-y-auto bg-card">
         <div class="p-3 flex items-center justify-between">
@@ -387,6 +481,13 @@
 
         <div class="py-2">
             <app-account-settings></app-account-settings>
+
+            <!-- Contacts Navigation Item in Profile Menu -->
+            <button (click)="openContacts()"
+                class="w-full flex items-center gap-4 px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer">
+                <ng-icon name="lucideUsers" class="text-xl text-zinc-400 shrink-0"></ng-icon>
+                <span class="flex-1 text-left font-medium">Contacts</span>
+            </button>
 
             <button (click)="onMenuItemClick('saved-messages')"
                 class="w-full flex items-center gap-4 px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer">
