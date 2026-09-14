@@ -11,18 +11,19 @@ import { HlmAlertImports } from '@spartan-ng/helm/alert';
 
 // Lucide Icons
 import { NgIcon, NgIconComponent, provideIcons } from '@ng-icons/core';
-import { 
-  lucideKey, 
-  lucideCopy, 
-  lucideCheck, 
-  lucideMessageSquare, 
-  lucideSend, 
-  lucideSearch, 
-  lucideGlobe, 
-  lucideCode2, 
+import {
+  lucideKey,
+  lucideCopy,
+  lucideCheck,
+  lucideMessageSquare,
+  lucideSend,
+  lucideSearch,
+  lucideGlobe,
+  lucideCode2,
   lucideSparkles,
   lucideAlertTriangle,
-  lucideShieldCheck
+  lucideShieldCheck,
+  lucideArrowLeft
 } from '@ng-icons/lucide';
 import { HlmFieldImports } from '@spartan-ng/helm/field';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
@@ -46,13 +47,15 @@ import { Router } from '@angular/router';
     HlmButtonImports
   ],
   providers: [
-    provideIcons({ lucideKey, lucideSparkles, lucideCopy, lucideCheck, lucideAlertTriangle, lucideMessageSquare, lucideCode2, lucideSearch, lucideGlobe, lucideSend })
+    provideIcons({ lucideKey, lucideSparkles, lucideCopy, lucideCheck, lucideAlertTriangle, lucideMessageSquare, lucideCode2, lucideSearch, lucideGlobe, lucideSend, lucideArrowLeft })
   ],
   templateUrl: './support-service.component.html'
 })
 export class SupportServiceComponent {
 
   readonly router = inject(Router)
+
+  readonly isMobileChatOpen = signal(false);
 
   // Key lifecycle states
   hasKeyConfigured = signal<boolean>(false);
@@ -124,8 +127,8 @@ export class SupportServiceComponent {
   filteredRooms = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
     if (!q) return this.rooms();
-    return this.rooms().filter(r => 
-      r.visitorName.toLowerCase().includes(q) || 
+    return this.rooms().filter(r =>
+      r.visitorName.toLowerCase().includes(q) ||
       r.lastMessage.toLowerCase().includes(q) ||
       (r.currentPage && r.currentPage.toLowerCase().includes(q))
     );
@@ -175,7 +178,15 @@ export class SupportServiceComponent {
 
   selectRoom(roomId: string): void {
     this.activeRoomId.set(roomId);
-    this.rooms.update(list => list.map(r => r.id === roomId ? { ...r, unreadCount: 0 } : r));
+    this.isMobileChatOpen.set(true);
+
+    this.rooms.update(list =>
+      list.map(room =>
+        room.id === roomId
+          ? { ...room, unreadCount: 0 }
+          : room
+      )
+    );
   }
 
   sendMessage(): void {
@@ -207,5 +218,9 @@ export class SupportServiceComponent {
 
   redirectHome() {
     this.router.navigate(['/chat'])
+  }
+
+  backToRooms(): void {
+    this.isMobileChatOpen.set(false);
   }
 }
