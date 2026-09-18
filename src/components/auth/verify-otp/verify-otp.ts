@@ -16,6 +16,7 @@ import { HlmInputOtpImports } from '@spartan-ng/helm/input-otp';
 import { HlmToasterImports } from '@spartan-ng/helm/sonner';
 
 import { OtpService } from '../../../services/auth/otp.service';
+import { SocketService } from '../../../services/socket/socket.service';
 
 @Component({
   selector: 'app-verify-otp',
@@ -40,6 +41,7 @@ import { OtpService } from '../../../services/auth/otp.service';
 export class VerifyOtpComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private socketService = inject(SocketService);
   private readonly otpService = inject(OtpService);
 
   private _intervalId?: ReturnType<typeof setInterval>;
@@ -113,6 +115,7 @@ export class VerifyOtpComponent implements OnInit, OnDestroy {
       }
 
       toast.success('Logged in successfully');
+      this.socketService.connect(res.data.token);
       timer(1000).subscribe(() => {
         this.router.navigate(['/chat']);
       });

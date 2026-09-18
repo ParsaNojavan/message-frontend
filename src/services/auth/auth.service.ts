@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { from, map, Observable, switchMap, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { SocketService } from '../socket/socket.service';
 
 export interface SendOtpResponse {
   message: string;
@@ -21,6 +22,7 @@ export interface RefreshResponse {
 })
 export class AuthService {
   private http = inject(HttpClient);
+  private socketService = inject(SocketService);
   private router = inject(Router);
   private readonly apiUrl = 'http://localhost:3000/user';
 
@@ -82,6 +84,8 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
+    this.socketService.disconnect();
+    
     await cookieStore.delete('access_token');
     await cookieStore.delete('refresh_token');
 
