@@ -1,40 +1,19 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
+import { HttpClient } from '@angular/common/http';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  readonly conversations = signal<Conversation[]>([
-    {
-      id: '1',
-      name: 'Technical Support',
-      avatar: '',
-      lastMessage: 'Hello, your ticket has been reviewed.',
-      lastMessageTime: '12:30 PM',
-      unreadCount: 2,
-      isOnline: true
-    },
-    {
-      id: '2',
-      name: 'Frontend Team',
-      avatar: '',
-      lastMessage: 'Components have been merged.',
-      lastMessageTime: 'Yesterday',
-      unreadCount: 0,
-      isOnline: false
-    }
-  ]);
+  private http = inject(HttpClient);
+  private readonly API_URL = 'http://localhost:3000';
 
-  readonly activeConversationId = signal<string | number | null>('1');
-
-  readonly messages = signal<Record<string | number, Message[]>>({
-    '1': [
-      { id: 1, conversationId: '1', text: 'Hi, what is the status of my payment?', time: '12:25 PM', isSender: true, status: 'read' },
-      { id: 2, conversationId: '1', text: 'Hello, your ticket has been reviewed and approved.', time: '12:30 PM', isSender: false }
-    ]
-  });
+  readonly conversations = signal<Conversation[]>([]);
+  readonly activeConversationId = signal<string | number | null>(null);
+  readonly messages = signal<Record<string | number, Message[]>>({});
 
   readonly activeConversation = computed(() => {
     const id = this.activeConversationId();
@@ -46,6 +25,79 @@ export class ChatService {
     if (!id) return [];
     return this.messages()[id] || [];
   });
+
+  loadConversations() {
+    this.http.get<any>(`${this.API_URL}/chat/user-rooms`)
+      .pipe(
+        map(response => response?.data || []),
+        switchMap((rooms: any[]) => {
+          if (!Array.isArray(rooms) || rooms.length === 0) {
+            return of({ rooms: [], statusMap: {} as Record<string, boolean> });
+          }
+
+          const userIds = rooms
+            .map(room => room.targetUserId || room.otherUser?.id || room.otherUser?._id)
+            .filter(Boolean)
+            .map(id => String(id));
+
+          if (userIds.length === 0) {
+            return of({ rooms, statusMap: {} as Record<string, boolean> });
+          }
+
+          return this.http.post<any>(`${this.API_URL}/chat/users-status`, { userIds }).pipe(
+            map(statusResponse => {
+
+              const rawStatus = statusResponse?.data || statusResponse;
+              const statusMap: Record<string, boolean> = {};
+
+              if (typeof rawStatus === 'object' && rawStatus !== null) {
+                Object.entries(rawStatus).forEach(([userId, status]) => {
+                  statusMap[userId] = status === 'online';
+                });
+              }
+
+              return { rooms, statusMap };
+            }),
+            catchError(err => {
+              console.warn('Error getting users precenses: ', err);
+              return of({ rooms, statusMap: {} as Record<string, boolean> });
+            })
+          );
+        }),
+        map(({ rooms, statusMap }) => {
+          return rooms.map((room: any) => {
+            const rawTargetId = room.targetUserId || room.otherUser?.id || room.otherUser?._id;
+            const targetUserId: string | null = rawTargetId ? String(rawTargetId) : null;
+
+            const isOnline = targetUserId ? (statusMap[targetUserId] ?? false) : false;
+
+            return {
+              id: room.id || room._id,
+              name: room.otherUser?.firstName
+                ? `${room.otherUser.firstName} ${room.otherUser.lastName || ''}`.trim()
+                : room.name || 'No Name Chat',
+              avatar: room.otherUser?.photoUrl || room.avatar || 'avatar.png',
+              lastMessage: room.lastMessage || 'No Messages',
+              lastMessageTime: room.updatedAt || '',
+              unreadCount: room.unreadCount || 0,
+              isOnline: isOnline
+            } as Conversation;
+          });
+        })
+      )
+      .subscribe({
+        next: (mappedConversations) => {
+          this.conversations.set(mappedConversations);
+
+          if (mappedConversations.length > 0 && !this.activeConversationId()) {
+            this.activeConversationId.set(mappedConversations[0].id);
+          }
+        },
+        error: (error) => {
+          console.error('Error loading chats: ', error);
+        }
+      });
+  }
 
   setActiveConversation(id: string | number) {
     this.activeConversationId.set(id);
