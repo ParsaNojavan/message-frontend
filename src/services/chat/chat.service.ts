@@ -1,9 +1,11 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpClient } from '@angular/common/http';
+import { catchError, from, map, of, switchMap } from 'rxjs';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
-import { HttpClient } from '@angular/common/http';
-import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
+import { SocketService } from '../socket/socket.service';
 
 export interface BackendMessagesResponse {
   messages: Array<{
@@ -13,7 +15,6 @@ export interface BackendMessagesResponse {
     content: string;
     isRead: boolean;
     readBy: string[];
-    type: string;
     media: any[];
     isForwarded: boolean;
     isEdited: boolean;
@@ -33,8 +34,10 @@ export interface BackendMessagesResponse {
   providedIn: 'root'
 })
 export class ChatService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
+  private readonly socketService = inject(SocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly API_URL = 'http://localhost:3000';
 
@@ -52,6 +55,47 @@ export class ChatService {
     if (!id) return [];
     return this.messages()[id] || [];
   });
+
+  constructor() {
+    this.initSocketListeners();
+  }
+
+  private initSocketListeners() {
+    this.socketService.listen<any>('room.message.new')
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(incomingMsg =>
+          from(this.authService.currentUser()).pipe(
+            map(currentUserId => ({ incomingMsg, currentUserId }))
+          )
+        )
+      )
+      .subscribe({
+        next: ({ incomingMsg, currentUserId }) => {
+          const roomId = incomingMsg.roomId;
+          const isSender = String(incomingMsg.senderId) === String(currentUserId);
+
+          if (isSender) return;
+
+          const newMessage: Message = {
+            id: incomingMsg._id || Date.now(),
+            conversationId: roomId,
+            text: incomingMsg.content || incomingMsg.message,
+            time: incomingMsg.createdAt || new Date().toISOString(),
+            isSender: false,
+            status: 'sent'
+          };
+
+          this.messages.update(allMessages => ({
+            ...allMessages,
+            [roomId]: [...(allMessages[roomId] || []), newMessage]
+          }));
+
+          this.updateConversationMetadata(roomId, newMessage.text, newMessage.time, false);
+        },
+        error: (err) => console.error('Socket newMessage error:', err)
+      });
+  }
 
   loadConversations() {
     this.http.get<any>(`${this.API_URL}/chat/user-rooms`)
@@ -73,7 +117,6 @@ export class ChatService {
 
           return this.http.post<any>(`${this.API_URL}/chat/users-status`, { userIds }).pipe(
             map(statusResponse => {
-
               const rawStatus = statusResponse?.data || statusResponse;
               const statusMap: Record<string, boolean> = {};
 
@@ -95,19 +138,19 @@ export class ChatService {
           return rooms.map((room: any) => {
             const rawTargetId = room.targetUserId || room.otherUser?.id || room.otherUser?._id;
             const targetUserId: string | null = rawTargetId ? String(rawTargetId) : null;
-
             const isOnline = targetUserId ? (statusMap[targetUserId] ?? false) : false;
 
             return {
               id: room.id || room._id,
+              targetUserId,
               name: room.otherUser?.firstName
                 ? `${room.otherUser.firstName} ${room.otherUser.lastName || ''}`.trim()
                 : room.name || 'No Name Chat',
-              avatar: room.otherUser?.photoUrl || room.avatar || 'avatar.png',
+              avatar: room.otherUser?.photoUrl || room.avatar,
               lastMessage: room.lastMessage || 'No Messages',
               lastMessageTime: room.updatedAt || '',
               unreadCount: room.unreadCount || 0,
-              isOnline: isOnline
+              isOnline
             } as Conversation;
           });
         })
@@ -117,7 +160,7 @@ export class ChatService {
           this.conversations.set(mappedConversations);
 
           if (mappedConversations.length > 0 && !this.activeConversationId()) {
-            this.activeConversationId.set(mappedConversations[0].id);
+            this.setActiveConversation(mappedConversations[0].id);
           }
         },
         error: (error) => {
@@ -139,8 +182,7 @@ export class ChatService {
                 text: m.content,
                 time: m.createdAt,
                 isSender: String(m.senderId) === String(currentUserId),
-                status: m.isRead ? 'read' : 'sent',
-                type: m.type
+                status: m.isRead ? 'read' : 'sent'
               } as Message));
             })
           )
@@ -161,18 +203,36 @@ export class ChatService {
 
   setActiveConversation(id: string | number) {
     this.activeConversationId.set(id);
-    this.loadMessages(id);
+    this.socketService.emit('room.join',{
+      "roomId": id
+    })
+
+    this.conversations.update(chats =>
+      chats.map(chat => String(chat.id) === String(id) ? { ...chat, unreadCount: 0 } : chat)
+    );
+
+    if (!this.messages()[id]) {
+      this.loadMessages(id);
+    }
   }
 
   sendMessage(text: string) {
     const activeId = this.activeConversationId();
     if (!activeId || !text.trim()) return;
 
+    const trimmedText = text.trim();
+    const nowIso = new Date().toISOString();
+
+    const payload = {
+      roomId: activeId,
+      message: trimmedText,
+    };
+
     const newMessage: Message = {
       id: Date.now(),
       conversationId: activeId,
-      text: text.trim(),
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      text: trimmedText,
+      time: nowIso,
       isSender: true,
       status: 'sent'
     };
@@ -181,5 +241,26 @@ export class ChatService {
       ...all,
       [activeId]: [...(all[activeId] || []), newMessage]
     }));
+
+    this.updateConversationMetadata(activeId, trimmedText, nowIso, true);
+
+    this.socketService.emit('room.message', payload);
+  }
+
+  private updateConversationMetadata(roomId: string | number, lastText: string, time: string, isSender: boolean) {
+    this.conversations.update(chats =>
+      chats.map(chat => {
+        if (String(chat.id) === String(roomId)) {
+          const isActiveChat = String(this.activeConversationId()) === String(roomId);
+          return {
+            ...chat,
+            lastMessage: lastText,
+            lastMessageTime: time,
+            unreadCount: (isActiveChat || isSender) ? (isActiveChat ? 0 : chat.unreadCount) : (chat.unreadCount || 0) + 1
+          };
+        }
+        return chat;
+      })
+    );
   }
 }
