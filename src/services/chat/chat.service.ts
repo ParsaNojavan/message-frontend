@@ -2,13 +2,40 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
 import { HttpClient } from '@angular/common/http';
-import { catchError, map, of, switchMap, tap } from 'rxjs';
+import { catchError, from, map, of, switchMap, tap } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
+
+export interface BackendMessagesResponse {
+  messages: Array<{
+    _id: string;
+    roomId: string;
+    senderId: string;
+    content: string;
+    isRead: boolean;
+    readBy: string[];
+    type: string;
+    media: any[];
+    isForwarded: boolean;
+    isEdited: boolean;
+    reactions: any[];
+    createdAt: string;
+    updatedAt: string;
+    sender: {
+      _id: string;
+      phoneNumber: string;
+    };
+  }>;
+  hasMore: boolean;
+  nextCursor: string | null;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
   private http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
+
   private readonly API_URL = 'http://localhost:3000';
 
   readonly conversations = signal<Conversation[]>([]);
@@ -99,8 +126,42 @@ export class ChatService {
       });
   }
 
+  loadMessages(roomId: string | number) {
+    from(this.authService.currentUser())
+      .pipe(
+        switchMap(currentUserId =>
+          this.http.get<BackendMessagesResponse>(`${this.API_URL}/chat/${roomId}/messages`).pipe(
+            map(response => {
+              const msgs = response?.messages || [];
+              return msgs.map(m => ({
+                id: m._id,
+                conversationId: m.roomId,
+                text: m.content,
+                time: m.createdAt,
+                isSender: String(m.senderId) === String(currentUserId),
+                status: m.isRead ? 'read' : 'sent',
+                type: m.type
+              } as Message));
+            })
+          )
+        )
+      )
+      .subscribe({
+        next: (mappedMessages) => {
+          this.messages.update(allMessages => ({
+            ...allMessages,
+            [roomId]: mappedMessages
+          }));
+        },
+        error: (error) => {
+          console.error(`Error loading messages for room ${roomId}:`, error);
+        }
+      });
+  }
+
   setActiveConversation(id: string | number) {
     this.activeConversationId.set(id);
+    this.loadMessages(id);
   }
 
   sendMessage(text: string) {

@@ -58,6 +58,29 @@ export class AuthService {
     );
   }
 
+  async currentUser() {
+    const cookie = await cookieStore.get('access_token');
+    const token = cookie?.value;
+    if (!token) return null;
+
+    try {
+      const payloadBase64 = token.split('.')[1];
+      const decodedJson = JSON.parse(
+        decodeURIComponent(
+          atob(payloadBase64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        )
+      );
+
+      return decodedJson.sub;
+    } catch (error) {
+      console.error('Error decoding JWT:', error);
+      return null;
+    }
+  }
+
   async logout(): Promise<void> {
     await cookieStore.delete('access_token');
     await cookieStore.delete('refresh_token');
