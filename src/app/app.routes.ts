@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -19,16 +20,19 @@ export const routes: Routes = [
   {
     path: 'chat',
     loadComponent: () =>
-      import('../components/chat/chat-page.component').then(m => m.ChatPageComponent)
+      import('../components/chat/chat-page.component').then(m => m.ChatPageComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'call/:peerId',
     loadComponent: () =>
       import('../components/call/call-page.component').then((m) => m.CallPageComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'support',
     loadComponent: () =>
       import('../components/support/support-service.component').then((m) => m.SupportServiceComponent),
+    canActivate: [authGuard]
   },
 ];
