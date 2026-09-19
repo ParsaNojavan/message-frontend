@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { ChatPageComponent } from '../components/chat/chat-page.component';
 
 export const routes: Routes = [
   {
@@ -22,6 +23,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../components/chat/chat-page.component').then(m => m.ChatPageComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'chat/:id',
+    component: ChatPageComponent
   },
   {
     path: 'call/:peerId',

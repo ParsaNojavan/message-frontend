@@ -1,7 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { ChatService } from '../../../services/chat/chat.service';
+import { ThemeService } from '../../../services/theme/theme.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
   lucideSearch,
@@ -43,17 +45,16 @@ import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
+import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
+import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 
+// Modal Dialogs & Models
 import { AccountSettingsComponent } from '../modals/account-dialog.component';
 import { SettingsDialogComponent } from '../modals/setting-dialog.component';
 import { CreateChannelDialogComponent } from '../modals/channel-dialog.component';
 import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
-import { RecentContact, SearchResultItem } from '../../../models/conversation.model';
-import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
-import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
-import { ThemeService } from '../../../services/theme/theme.service';
-import { Router } from '@angular/router';
 import { AddContactDialogComponent, NewContactData } from '../modals/add-contact-dialog.component';
+import { RecentContact, SearchResultItem } from '../../../models/conversation.model';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -72,7 +73,8 @@ import { AddContactDialogComponent, NewContactData } from '../modals/add-contact
     CreateGroupDialogComponent,
     HlmContextMenuImports,
     HlmDropdownMenuImports,
-    AddContactDialogComponent
+    AddContactDialogComponent,
+    RouterLink
   ],
   providers: [
     provideIcons({
@@ -109,8 +111,8 @@ import { AddContactDialogComponent, NewContactData } from '../modals/add-contact
 })
 export class ChatSidebarComponent {
   readonly chatService = inject(ChatService);
-  readonly themeService = inject(ThemeService)
-  readonly router = inject(Router)
+  readonly themeService = inject(ThemeService);
+  readonly router = inject(Router);
 
   currentView = signal<'chats' | 'search' | 'profile' | 'contacts'>('chats');
   searchQuery = signal<string>('');
@@ -137,7 +139,6 @@ export class ChatSidebarComponent {
     { id: '4', name: 'Ehsan Mohammadi', phone: '+98 912 888 9900', online: false, lastSeen: 'last seen yesterday' },
     { id: '5', name: 'Sara Tehrani', phone: '+98 912 777 6655', online: true, lastSeen: 'online' },
   ]);
-
 
   allSearchItems = signal<SearchResultItem[]>([
     {
@@ -174,7 +175,6 @@ export class ChatSidebarComponent {
       type: 'bot'
     }
   ]);
-
 
   filteredResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
@@ -239,7 +239,8 @@ export class ChatSidebarComponent {
 
   onSelectResult(item: SearchResultItem | RecentContact): void {
     if ('id' in item) {
-      this.chatService.setActiveConversation(item.id);
+      this.router.navigate(['/chat'], { queryParams: { id: item.id } });
+      this.closeSearch();
     }
   }
 
@@ -260,7 +261,9 @@ export class ChatSidebarComponent {
   }
 
   onSelectContact(contact: any) {
-    this.currentView.set('chats');
+    
+  this.router.navigate(['/chat'], { queryParams: { id: contact.id } });
+    this.backToChats();
   }
 
   onAddContact() {
@@ -280,5 +283,4 @@ export class ChatSidebarComponent {
 
     this.contacts.update(list => [contactItem, ...list]);
   }
-
 }
