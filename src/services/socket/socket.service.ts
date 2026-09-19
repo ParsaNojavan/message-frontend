@@ -4,25 +4,33 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SocketService {
-    private socket!: Socket;
+    public socket!: Socket;
+
+    constructor() {
+        this.socket = io('http://localhost:3010', {
+            autoConnect: false,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+        });
+    }
 
     connect(token: string) {
-        if (!this.socket) {
-            this.socket = io('localhost:3010', {
-                auth: { token: token },
-                autoConnect: true,
-            });
+        this.socket.auth = { token };
+
+        if (this.socket.disconnected) {
+            this.socket.connect();
         }
     }
 
     disconnect() {
-        if (this.socket) {
+        if (this.socket && this.socket.connected) {
             this.socket.disconnect();
         }
     }
 
     emit(eventName: string, data: any) {
-        if (this.socket) {
+        if (this.socket && this.socket.connected) {
             this.socket.emit(eventName, data);
         }
     }

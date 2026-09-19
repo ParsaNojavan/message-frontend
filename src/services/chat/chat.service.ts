@@ -6,29 +6,7 @@ import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
 import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
-
-export interface BackendMessagesResponse {
-  messages: Array<{
-    _id: string;
-    roomId: string;
-    senderId: string;
-    content: string;
-    isRead: boolean;
-    readBy: string[];
-    media: any[];
-    isForwarded: boolean;
-    isEdited: boolean;
-    reactions: any[];
-    createdAt: string;
-    updatedAt: string;
-    sender: {
-      _id: string;
-      phoneNumber: string;
-    };
-  }>;
-  hasMore: boolean;
-  nextCursor: string | null;
-}
+import { BackendMessagesResponse } from '../../models/dto/message.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -62,16 +40,11 @@ export class ChatService {
 
   private initSocketListeners() {
     this.socketService.listen<any>('room.message.new')
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap(incomingMsg =>
-          from(this.authService.currentUser()).pipe(
-            map(currentUserId => ({ incomingMsg, currentUserId }))
-          )
-        )
-      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ incomingMsg, currentUserId }) => {
+        next: (incomingMsg) => {
+          const currentUserId = this.authService.currentUser();
+
           const roomId = incomingMsg.roomId;
           const isSender = String(incomingMsg.senderId) === String(currentUserId);
 
@@ -170,23 +143,21 @@ export class ChatService {
   }
 
   loadMessages(roomId: string | number) {
-    from(this.authService.currentUser())
+    const currentUserId = this.authService.currentUser();
+
+    this.http.get<BackendMessagesResponse>(`${this.API_URL}/chat/${roomId}/messages`)
       .pipe(
-        switchMap(currentUserId =>
-          this.http.get<BackendMessagesResponse>(`${this.API_URL}/chat/${roomId}/messages`).pipe(
-            map(response => {
-              const msgs = response?.messages || [];
-              return msgs.map(m => ({
-                id: m._id,
-                conversationId: m.roomId,
-                text: m.content,
-                time: m.createdAt,
-                isSender: String(m.senderId) === String(currentUserId),
-                status: m.isRead ? 'read' : 'sent'
-              } as Message));
-            })
-          )
-        )
+        map(response => {
+          const msgs = response?.messages || [];
+          return msgs.map(m => ({
+            id: m._id,
+            conversationId: m.roomId,
+            text: m.content,
+            time: m.createdAt,
+            isSender: String(m.senderId) === String(currentUserId),
+            status: m.isRead ? 'read' : 'sent'
+          } as Message));
+        })
       )
       .subscribe({
         next: (mappedMessages) => {
@@ -203,7 +174,7 @@ export class ChatService {
 
   setActiveConversation(id: string | number) {
     this.activeConversationId.set(id);
-    this.socketService.emit('room.join',{
+    this.socketService.emit('room.join', {
       "roomId": id
     })
 

@@ -1,21 +1,10 @@
-// src/app/services/auth.service.ts
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { from, map, Observable, switchMap, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { SocketService } from '../socket/socket.service';
-
-export interface SendOtpResponse {
-  message: string;
-  success: boolean;
-  expiresIn?: number;
-}
-
-export interface RefreshResponse {
-  data: {
-    token: string;
-  }
-}
+import { RefreshResponse } from '../../models/dto/refreshResponse.dto';
+import { SendOtpResponse } from '../../models/dto/otpResponse.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +14,37 @@ export class AuthService {
   private socketService = inject(SocketService);
   private router = inject(Router);
   private readonly apiUrl = 'http://localhost:3000/user';
+
+  currentUser = signal<string | null>(null);
+
+  constructor() {
+    this.restoreSession();
+  }
+
+  private async restoreSession() {
+    try {
+      const cookie = await cookieStore.get('access_token');
+      const token = cookie?.value;
+
+      if (token) {
+        const userId = this.decodeToken(token);
+        this.currentUser.set(userId);
+        this.socketService.connect(token);
+      }
+    } catch (err) {
+      console.error('Failed to restore session:', err);
+    }
+  }
+
+  async handleAuthentication(token: string, refreshToken: string) {
+    await cookieStore.set('access_token', token);
+    await cookieStore.set('refresh_token', refreshToken);
+
+    const userId = this.decodeToken(token);
+    this.currentUser.set(userId);
+
+    this.socketService.connect(token);
+  }
 
   sendVerificationCode(phone: string): Observable<SendOtpResponse> {
 
@@ -36,7 +56,8 @@ export class AuthService {
 
   refreshToken(): Observable<RefreshResponse> {
     return from(cookieStore.get('refresh_token')).pipe(
-      switchMap((refreshToken) => {
+      switchMap((cookie) => {
+        const refreshToken = cookie?.value;
         if (!refreshToken) {
           this.logout();
           return throwError(() => new Error('Refresh token not found'));
@@ -60,11 +81,7 @@ export class AuthService {
     );
   }
 
-  async currentUser() {
-    const cookie = await cookieStore.get('access_token');
-    const token = cookie?.value;
-    if (!token) return null;
-
+  private decodeToken(token: string): string | null {
     try {
       const payloadBase64 = token.split('.')[1];
       const decodedJson = JSON.parse(
@@ -85,7 +102,8 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.socketService.disconnect();
-    
+    this.currentUser.set(null);
+
     await cookieStore.delete('access_token');
     await cookieStore.delete('refresh_token');
 
