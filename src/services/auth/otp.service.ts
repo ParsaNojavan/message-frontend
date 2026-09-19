@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { SocketService } from '../socket/socket.service';
 
 export interface VerifyOtpResponse {
 	data: {
@@ -15,7 +14,6 @@ export interface VerifyOtpResponse {
 })
 export class OtpService {
 	private readonly http = inject(HttpClient);
-	private socketService = inject(SocketService);
 	private readonly baseUrl = 'http://localhost:3000/user';
 
 	sendVerificationCode(phone: string): Observable<{ success: boolean; message: string }> {
