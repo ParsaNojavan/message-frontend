@@ -63,7 +63,7 @@ export class AuthService {
           return throwError(() => new Error('Refresh token not found'));
         }
 
-        return this.http.post<RefreshResponse>(`${this.apiUrl}/user/refresh-token`, {
+        return this.http.post<RefreshResponse>(`${this.apiUrl}/refresh-token`, {
           refreshToken: refreshToken,
         }).pipe(
 
