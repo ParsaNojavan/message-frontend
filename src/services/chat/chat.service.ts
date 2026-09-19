@@ -1,6 +1,7 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
+import { Injectable, signal, computed, inject, DestroyRef, effect } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router'; // 👈 اضافه شد
 import { catchError, from, map, of, switchMap } from 'rxjs';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
@@ -16,6 +17,7 @@ export class ChatService {
   private readonly authService = inject(AuthService);
   private readonly socketService = inject(SocketService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   private readonly API_URL = 'http://localhost:3000';
 
@@ -25,7 +27,7 @@ export class ChatService {
 
   readonly activeConversation = computed(() => {
     const id = this.activeConversationId();
-    return this.conversations().find(c => c.id === id) ?? null;
+    return this.conversations().find(c => String(c.id) === String(id)) ?? null;
   });
 
   readonly currentMessages = computed(() => {
@@ -36,6 +38,25 @@ export class ChatService {
 
   constructor() {
     this.initSocketListeners();
+
+    effect(() => {
+      const id = this.activeConversationId();
+      if (id) {
+        this.handleConversationChange(id);
+      }
+    }, { allowSignalWrites: true });
+  }
+
+  private handleConversationChange(id: string | number) {
+    this.socketService.emit('room.join', { roomId: id });
+
+    this.conversations.update(chats =>
+      chats.map(chat => String(chat.id) === String(id) ? { ...chat, unreadCount: 0 } : chat)
+    );
+
+    if (!this.messages()[id]) {
+      this.loadMessages(id);
+    }
   }
 
   private initSocketListeners() {
@@ -133,7 +154,7 @@ export class ChatService {
           this.conversations.set(mappedConversations);
 
           if (mappedConversations.length > 0 && !this.activeConversationId()) {
-            this.setActiveConversation(mappedConversations[0].id);
+            this.router.navigate(['/chat', mappedConversations[0].id]);
           }
         },
         error: (error) => {
@@ -172,19 +193,8 @@ export class ChatService {
       });
   }
 
-  setActiveConversation(id: string | number) {
+  setActiveConversation(id: string | number | null) {
     this.activeConversationId.set(id);
-    this.socketService.emit('room.join', {
-      "roomId": id
-    })
-
-    this.conversations.update(chats =>
-      chats.map(chat => String(chat.id) === String(id) ? { ...chat, unreadCount: 0 } : chat)
-    );
-
-    if (!this.messages()[id]) {
-      this.loadMessages(id);
-    }
   }
 
   sendMessage(text: string) {

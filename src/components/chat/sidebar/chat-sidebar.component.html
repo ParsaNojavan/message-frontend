@@ -59,7 +59,7 @@
     <!-- Conversations List -->
     <div class="flex-1 overflow-y-auto divide-y divide-border/50 [scrollbar-width:thin]">
         @for (chat of chatService.conversations(); track chat.id) {
-        <div (click)="chatService.setActiveConversation(chat.id)" [hlmContextMenuTrigger]="chatMenu"
+        <a [routerLink]="['/chat']" [queryParams]="{ id: chat.id }" [hlmContextMenuTrigger]="chatMenu"
             (contextmenu)="activeMenuChat.set(chat)"
             [class.bg-emerald-500/10]="chatService.activeConversationId() === chat.id"
             [class.dark:bg-emerald-500/15]="chatService.activeConversationId() === chat.id"
@@ -67,7 +67,8 @@
 
             <hlm-avatar class="w-12 h-12 flex-shrink-0">
                 <img *ngIf="chat.avatar" [src]="chat.avatar" hlmAvatarImage [alt]="chat.name" />
-                <span hlmAvatarFallback class="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
+                <span hlmAvatarFallback
+                    class="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
                     {{ chat.name.charAt(0) }}
                 </span>
             </hlm-avatar>
@@ -75,17 +76,20 @@
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-1">
                     <h4 class="font-semibold text-sm truncate text-zinc-900 dark:text-zinc-100">{{ chat.name }}</h4>
-                    <span class="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0">{{ chat.lastMessageTime }}</span>
+                    <span class="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0">{{ chat.lastMessageTime
+                        }}</span>
                 </div>
                 <div class="flex justify-between items-center gap-2">
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">{{ chat.lastMessage }}</p>
                     @if (chat.unreadCount) {
                     <span
-                        class="bg-emerald-600 text-white rounded-full text-[10px] font-semibold px-1.5 py-0.5 shadow-sm">{{chat.unreadCount}}</span>
+                        class="bg-emerald-600 text-white rounded-full text-[10px] font-semibold px-1.5 py-0.5 shadow-sm">
+                        {{chat.unreadCount}}
+                    </span>
                     }
                 </div>
             </div>
-        </div>
+        </a>
         }
 
         <ng-template #chatMenu>
@@ -179,10 +183,8 @@
 
             <!-- Filter Tabs -->
             <div class="flex items-center justify-around text-xs border-b border-border/40 px-2 pb-1">
-                <button (click)="selectedTab.set('all')"
-                    [class.text-emerald-600]="selectedTab() === 'all'"
-                    [class.dark:text-emerald-400]="selectedTab() === 'all'"
-                    [class.border-b-2]="selectedTab() === 'all'"
+                <button (click)="selectedTab.set('all')" [class.text-emerald-600]="selectedTab() === 'all'"
+                    [class.dark:text-emerald-400]="selectedTab() === 'all'" [class.border-b-2]="selectedTab() === 'all'"
                     [class.border-emerald-600]="selectedTab() === 'all'"
                     [class.dark:border-emerald-400]="selectedTab() === 'all'"
                     [class.font-bold]="selectedTab() === 'all'"
@@ -190,8 +192,7 @@
                     All
                 </button>
 
-                <button (click)="selectedTab.set('channel')"
-                    [class.text-emerald-600]="selectedTab() === 'channel'"
+                <button (click)="selectedTab.set('channel')" [class.text-emerald-600]="selectedTab() === 'channel'"
                     [class.dark:text-emerald-400]="selectedTab() === 'channel'"
                     [class.border-b-2]="selectedTab() === 'channel'"
                     [class.border-emerald-600]="selectedTab() === 'channel'"
@@ -201,10 +202,8 @@
                     Channels
                 </button>
 
-                <button (click)="selectedTab.set('bot')"
-                    [class.text-emerald-600]="selectedTab() === 'bot'"
-                    [class.dark:text-emerald-400]="selectedTab() === 'bot'"
-                    [class.border-b-2]="selectedTab() === 'bot'"
+                <button (click)="selectedTab.set('bot')" [class.text-emerald-600]="selectedTab() === 'bot'"
+                    [class.dark:text-emerald-400]="selectedTab() === 'bot'" [class.border-b-2]="selectedTab() === 'bot'"
                     [class.border-emerald-600]="selectedTab() === 'bot'"
                     [class.dark:border-emerald-400]="selectedTab() === 'bot'"
                     [class.font-bold]="selectedTab() === 'bot'"
@@ -212,8 +211,7 @@
                     Bots
                 </button>
 
-                <button (click)="selectedTab.set('service')"
-                    [class.text-emerald-600]="selectedTab() === 'service'"
+                <button (click)="selectedTab.set('service')" [class.text-emerald-600]="selectedTab() === 'service'"
                     [class.dark:text-emerald-400]="selectedTab() === 'service'"
                     [class.border-b-2]="selectedTab() === 'service'"
                     [class.border-emerald-600]="selectedTab() === 'service'"
@@ -242,7 +240,8 @@
                             {{ contact.fallbackText }}
                             }
                         </div>
-                        <span class="text-xs text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white max-w-[64px] truncate text-center">
+                        <span
+                            class="text-xs text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white max-w-[64px] truncate text-center">
                             {{ contact.name }}
                         </span>
                     </div>
@@ -270,7 +269,9 @@
                                 [ngClass]="item.fallbackBg || 'bg-emerald-600'">
                                 {{ item.fallbackText }}
                             </div>
-                            <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white">{{ item.name }}</span>
+                            <span
+                                class="text-sm font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white">{{
+                                item.name }}</span>
                         </div>
                     </div>
                     }
@@ -302,13 +303,16 @@
 
                         <div class="min-w-0">
                             <div class="flex items-center gap-1.5">
-                                <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate">{{
+                                <h4
+                                    class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate">
+                                    {{
                                     result.name }}</h4>
                                 @if (result.verified) {
                                 <ng-icon name="lucideBadgeCheck" class="text-emerald-500 text-base shrink-0"></ng-icon>
                                 }
                                 @if (result.type === 'channel') {
-                                <ng-icon name="lucideUsers" class="text-zinc-400 dark:text-zinc-500 text-xs shrink-0"></ng-icon>
+                                <ng-icon name="lucideUsers"
+                                    class="text-zinc-400 dark:text-zinc-500 text-xs shrink-0"></ng-icon>
                                 }
                             </div>
                             <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
@@ -356,13 +360,14 @@
                 </div>
 
                 <div class="flex items-center gap-1">
-<app-add-contact-dialog (contactAdded)="onNewContactAdded($event)"></app-add-contact-dialog>
+                    <app-add-contact-dialog (contactAdded)="onNewContactAdded($event)"></app-add-contact-dialog>
                 </div>
             </div>
 
             <!-- Contacts Search Input -->
             <div class="relative flex items-center w-full">
-                <ng-icon name="lucideSearch" class="absolute left-3.5 text-zinc-400 text-sm pointer-events-none"></ng-icon>
+                <ng-icon name="lucideSearch"
+                    class="absolute left-3.5 text-zinc-400 text-sm pointer-events-none"></ng-icon>
                 <input type="text" [ngModel]="contactsSearchQuery()" (ngModelChange)="contactsSearchQuery.set($event)"
                     placeholder="Search contacts..."
                     class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-9 pr-9 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none transition-all shadow-inner" />
@@ -388,7 +393,8 @@
 
             @for (group of groupedContacts(); track group.letter) {
             <div class="relative">
-                <div class="sticky top-0 z-10 px-4 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-zinc-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-y border-border/30">
+                <div
+                    class="sticky top-0 z-10 px-4 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-zinc-50/90 dark:bg-zinc-950/90 backdrop-blur-sm border-y border-border/30">
                     {{ group.letter }}
                 </div>
 
@@ -396,27 +402,29 @@
                     @for (contact of group.contacts; track contact.id) {
                     <div (click)="onSelectContact(contact)"
                         class="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group">
-                        
+
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="relative shrink-0">
                                 <hlm-avatar class="size-10">
-                                    <img  hlmAvatarImage [alt]="contact.name" />
-                                    <span hlmAvatarFallback class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold">
+                                    <img hlmAvatarImage [alt]="contact.name" />
+                                    <span hlmAvatarFallback
+                                        class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold">
                                         {{ contact.name.charAt(0) }}
                                     </span>
                                 </hlm-avatar>
 
                                 @if (contact.online) {
-                                <span class="absolute bottom-0 right-0 size-2.5 bg-emerald-500 border-2 border-card rounded-full"></span>
+                                <span
+                                    class="absolute bottom-0 right-0 size-2.5 bg-emerald-500 border-2 border-card rounded-full"></span>
                                 }
                             </div>
 
                             <div class="min-w-0">
-                                <h4 class="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                <h4
+                                    class="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                     {{ contact.name }}
                                 </h4>
-                                <p class="text-xs truncate"
-                                    [class.text-emerald-600]="contact.online"
+                                <p class="text-xs truncate" [class.text-emerald-600]="contact.online"
                                     [class.dark:text-emerald-400]="contact.online"
                                     [class.text-zinc-500]="!contact.online"
                                     [class.dark:text-zinc-400]="!contact.online">
@@ -452,7 +460,7 @@
             </button>
 
             <button hlmBtn variant="outline" size="sm" (click)="this.themeService.toggleTheme()"
-                 class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors border-zinc-200 dark:border-zinc-800">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors border-zinc-200 dark:border-zinc-800">
                 @if (this.themeService.isDarkMode()) {
                 <ng-icon name="lucideSun" class="text-lg text-zinc-400"></ng-icon>
                 } @else {
@@ -466,7 +474,8 @@
             <div class="relative">
                 <hlm-avatar class="size-20 ring-2 ring-emerald-500/30">
                     <img hlmAvatarImage src="/avatar.png" alt="Profile" />
-                    <span hlmAvatarFallback class="font-semibold text-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">PN</span>
+                    <span hlmAvatarFallback
+                        class="font-semibold text-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">PN</span>
                 </hlm-avatar>
             </div>
 
