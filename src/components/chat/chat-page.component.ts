@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -18,19 +18,31 @@ export class ChatPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
+  pendingUserId = signal<string | null>(null);
+
+  isChatOpen = computed(() => {
+    return !!this.chatService.activeConversationId() || !!this.pendingUserId();
+  });
+
   ngOnInit(): void {
     this.chatService.loadConversations();
 
-    this.route.queryParamMap.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(params => {
-      const chatId = params.get('id');
-      
-      if (chatId) {
-        this.chatService.setActiveConversation(chatId);
-      } else {
-        this.chatService.setActiveConversation(null);
-      }
-    });
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const roomId = params.get('id');
+        const userId = params.get('userId');
+
+        if (roomId) {
+          this.chatService.setActiveConversation(roomId);
+          this.pendingUserId.set(null);
+        } else if (userId) {
+          this.chatService.setActiveConversation(null);
+          this.pendingUserId.set(userId);
+        } else {
+          this.chatService.setActiveConversation(null);
+          this.pendingUserId.set(null);
+        }
+      });
   }
 }

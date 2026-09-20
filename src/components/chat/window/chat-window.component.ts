@@ -59,6 +59,7 @@ import { SearchMessagesDialogComponent } from '../modals/search-message.componen
 import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload-modal.component';
 import { CallPeer, CallService } from '../../../services/call/call.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-chat-window',
@@ -109,6 +110,7 @@ export class ChatWindowComponent implements AfterViewChecked {
   readonly chatService = inject(ChatService);
   readonly callService = inject(CallService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
@@ -122,6 +124,7 @@ export class ChatWindowComponent implements AfterViewChecked {
   activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
   showingReactionsForMsgId: string | number | null = null;
   highlightedMessageId = signal<string | number | null>(null);
+  lazyUserFallback = signal<{ name: string; phone?: string; avatar?: string } | null>(null);
 
   quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
 
@@ -135,18 +138,46 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   selectedUser = computed<UserProfileData>(() => {
     const activeChat = this.chatService.activeConversation();
-    const activeName = activeChat?.name || 'Unknown';
+    const lazyUser = this.lazyUserFallback();
+    const activeName = activeChat?.name || lazyUser?.name || 'Unknown';
 
     return {
       name: activeName,
-      phone: activeChat?.phoneNumber,
-      avatar: activeChat?.avatar,
+      phone: activeChat?.phoneNumber || lazyUser?.phone,
+      avatar: activeChat?.avatar || lazyUser?.avatar,
       isOnline: false,
       lastSeen: 'last seen Wednesday at 18:00',
       avatarColor: 'bg-emerald-600 text-white',
       notificationsEnabled: this.isNotificationsEnabled()
     };
   });
+
+
+  lazyUserId: string | null = null;
+
+  constructor() {
+    this.route.queryParamMap.subscribe(params => {
+      const userId = params.get('userId');
+      const nameFromQuery = params.get('name');
+      const contactState = history.state?.contact;
+
+      this.lazyUserId = userId; // 👈 آیدی کاربر را اینجا ذخیره کنید
+
+      if (userId && !this.chatService.activeConversationId()) {
+        const contactName = contactState?.customFirstName
+          ? `${contactState.customFirstName} ${contactState.customLastName || ''}`.trim()
+          : (nameFromQuery || 'در حال بارگذاری...');
+
+        this.lazyUserFallback.set({
+          name: contactName,
+          phone: contactState?.contactUser?.phoneNumber,
+          avatar: contactState?.contactUser?.avatar
+        });
+      } else {
+        this.lazyUserFallback.set(null);
+      }
+    });
+  }
 
   chatPhotos = signal<string[]>([
     'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp',
@@ -212,12 +243,47 @@ export class ChatWindowComponent implements AfterViewChecked {
     this.isAttachmentOpen.set(false);
   }
 
-  send() {
-    if (!this.messageText.trim()) return;
-    this.chatService.sendMessage(this.messageText);
-    this.messageText = '';
-    this.isEmojiOpen.set(false);
+  async send() {
+    const content = this.messageText.trim();
+    if (!content) return;
+
+    try {
+      let currentRoomId = this.chatService.activeConversationId();
+
+      if (!currentRoomId && this.lazyUserId) {
+        console.log(this.lazyUserId)
+        const roomResponse: any = await firstValueFrom(this.chatService.startDirectChat(this.lazyUserId));
+        currentRoomId = roomResponse?.data?.roomId
+
+        if (currentRoomId) {
+          if (typeof this.chatService.setActiveConversation === 'function') {
+            this.chatService.setActiveConversation(currentRoomId);
+          } else {
+            this.chatService.activeConversationId.set(currentRoomId);
+          }
+        }
+      }
+
+      if (!currentRoomId) {
+        console.error('Room ID is missing and could not be created.');
+        return;
+      }
+
+      this.chatService.sendMessage(content);
+
+      this.chatService.loadConversations();
+
+      this.messageText = '';
+      this.router.navigate([], {
+        queryParams: { id: currentRoomId },
+        replaceUrl: true
+      });
+
+    } catch (error) {
+      console.error('Error starting chat: ', error);
+    }
   }
+
 
   ngAfterViewChecked() {
     this.scrollToBottom();
@@ -395,9 +461,16 @@ export class ChatWindowComponent implements AfterViewChecked {
       peer,
       isVideo,
       'ws://localhost:7880',
-      'GAPGPTMASKTOKEN9yonha1dvzrX0X'
+      'test-token'
     );
 
     this.router.navigate(['/call', peer.id]);
+  }
+
+  goBack() {
+    this.chatService.activeConversationId.set(null);
+    this.router.navigate(['/chat'], {
+      queryParams: {}
+    });
   }
 }
