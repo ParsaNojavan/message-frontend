@@ -1,13 +1,14 @@
 import { Injectable, signal, computed, inject, DestroyRef, effect } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router'; // 👈 اضافه شد
-import { catchError, from, map, of, switchMap } from 'rxjs';
+import { Router } from '@angular/router';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
 import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
 import { BackendMessagesResponse } from '../../models/dto/message.dto';
+import { RoomMuteResponse } from '../../models/dto/roomMute.dto';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +29,12 @@ export class ChatService {
   readonly activeConversation = computed(() => {
     const id = this.activeConversationId();
     return this.conversations().find(c => String(c.id) === String(id)) ?? null;
+  });
+
+  readonly isActiveConversationMuted = computed(() => {
+    const active = this.activeConversation();
+    if (!active || !active.mutedUntil) return false;
+    return new Date(active.mutedUntil).getTime() > Date.now();
   });
 
   readonly currentMessages = computed(() => {
@@ -144,6 +151,8 @@ export class ChatService {
               lastMessage: room.lastMessage || 'No Messages',
               lastMessageTime: room.updatedAt || '',
               unreadCount: room.unreadCount || 0,
+              phoneNumber: room.otherUser?.phoneNumber || null,
+              mutedUntil: room.mutedUntil ?? null,
               isOnline
             } as Conversation;
           });
@@ -226,6 +235,40 @@ export class ChatService {
     this.updateConversationMetadata(activeId, trimmedText, nowIso, true);
 
     this.socketService.emit('room.message', payload);
+  }
+
+  muteRoom(roomId: string | number, durationMinutes: number) {
+    return this.http.put<RoomMuteResponse>(`${this.API_URL}/chat/room-mute`, {
+      roomId: String(roomId),
+      durationMinutes
+    }).pipe(
+      tap((res) => {
+        const updatedMutedUntil = res.data?.muted ?? null;
+        this.conversations.update(chats =>
+          chats.map(chat =>
+            String(chat.id) === String(roomId)
+              ? { ...chat, mutedUntil: updatedMutedUntil }
+              : chat
+          )
+        );
+      })
+    );
+  }
+
+  unmuteRoom(roomId: string | number) {
+    return this.muteRoom(roomId, 0);
+  }
+
+  toggleRoomMute(roomId: string | number, defaultDuration: number = -1) {
+    const targetChat = this.conversations().find(c => String(c.id) === String(roomId));
+    const isMuted = targetChat?.mutedUntil && new Date(targetChat.mutedUntil).getTime() > Date.now();
+
+    return this.muteRoom(roomId, isMuted ? 0 : defaultDuration);
+  }
+
+  isRoomMuted(mutedUntil?: string | Date | null): boolean {
+    if (!mutedUntil) return false;
+    return new Date(mutedUntil).getTime() > Date.now();
   }
 
   private updateConversationMetadata(roomId: string | number, lastText: string, time: string, isSender: boolean) {

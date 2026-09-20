@@ -38,6 +38,7 @@ import {
   lucideDelete,
   lucideUsers,
   lucideArrowLeft,
+  lucideChevronRight, // 👈 اضافه شد جهت جلوگیری از ارور HTML
 } from '@ng-icons/lucide';
 
 // Spartan UI New Imports
@@ -98,7 +99,8 @@ import { ActivatedRoute, Router } from '@angular/router';
       lucideCamera,
       lucideDelete,
       lucideUsers,
-      lucideArrowLeft
+      lucideArrowLeft,
+      lucideChevronRight
     })
   ],
   templateUrl: './chat-window.component.html'
@@ -110,6 +112,7 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('uploadModal') uploadModal!: MediaUploadModalComponent;
 
   readonly currentUserId = 'current-user-id';
   readonly currentUserName = 'You';
@@ -117,17 +120,27 @@ export class ChatWindowComponent implements AfterViewChecked {
   isAttachmentOpen = signal(false);
   isEmojiOpen = signal(false);
   activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
-  isNotificationsEnabled = signal(true);
   showingReactionsForMsgId: string | number | null = null;
   highlightedMessageId = signal<string | number | null>(null);
 
   quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
+
+  // محاسبه وضعیت فعال بودن نوتیفیکیشن‌ها براساس mutedUntil روم جاری
+  readonly isNotificationsEnabled = computed(() => {
+    const active = this.chatService.activeConversation();
+    if (!active?.mutedUntil) return true;
+    const mutedDate = new Date(active.mutedUntil as any);
+    return isNaN(mutedDate.getTime()) || mutedDate.getTime() <= Date.now();
+  });
+
   selectedUser = computed<UserProfileData>(() => {
-    const activeName = this.chatService.activeConversation()?.name || 'Unknown';
+    const activeChat = this.chatService.activeConversation();
+    const activeName = activeChat?.name || 'Unknown';
 
     return {
       name: activeName,
-      phone: '+989144190723',
+      phone: activeChat?.phoneNumber,
+      avatar: activeChat?.avatar,
       isOnline: false,
       lastSeen: 'last seen Wednesday at 18:00',
       avatarColor: 'bg-emerald-600 text-white',
@@ -313,8 +326,21 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  onNotificationsToggled(enabled: boolean) {
-    this.isNotificationsEnabled.set(enabled);
+  onNotificationsToggled(isMuted: boolean) {
+    const activeId = this.chatService.activeConversationId();
+    if (!activeId) return;
+
+    const durationMinutes = isMuted ? -1 : 0;
+
+    this.chatService.muteRoom(activeId, durationMinutes).subscribe({
+      next: () => {
+        const current = this.chatService.activeConversation();
+        if (current) {
+          current.mutedUntil = isMuted ? new Date(8640000000000000).toISOString() : null;
+        }
+      },
+      error: (err) => console.error('Error muting room: ', err)
+    });
   }
 
   onDirectChatClicked() {
@@ -352,8 +378,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     }, 100);
   }
 
-  @ViewChild('uploadModal') uploadModal!: MediaUploadModalComponent;
-
   onFilePicked(event: Event, type: 'media' | 'document' | 'audio' | 'camera') {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -371,10 +395,9 @@ export class ChatWindowComponent implements AfterViewChecked {
       peer,
       isVideo,
       'ws://localhost:7880',
-      'eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiTWVtYmVyLTZhOTZiIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiI2YWEwNWRkMGVhZDAwOTBjM2NmMjZjODMiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsInJvb21BZG1pbiI6ZmFsc2V9LCJpc3MiOiJkZXZrZXkiLCJleHAiOjE3ODkzMTYwNTcsIm5iZiI6MTc4OTMwODg1Nywic3ViIjoiNmE5NmJlZGVmZjE4NWUwNTVmODc3YTgwIn0.U87hzjcYfaBoAF4vU7ADrrpOO8cMwLiRy3csIKAOG2E'
+      'GAPGPTMASKTOKEN9yonha1dvzrX0X'
     );
 
     this.router.navigate(['/call', peer.id]);
   }
-
 }
