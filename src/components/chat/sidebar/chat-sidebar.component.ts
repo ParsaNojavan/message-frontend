@@ -54,7 +54,7 @@ import { SettingsDialogComponent } from '../modals/setting-dialog.component';
 import { CreateChannelDialogComponent } from '../modals/channel-dialog.component';
 import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
 import { AddContactDialogComponent, NewContactData } from '../modals/add-contact-dialog.component';
-import { RecentContact, SearchResultItem } from '../../../models/conversation.model';
+import { ConversationFilter, RecentContact, SearchResultItem } from '../../../models/conversation.model';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -119,6 +119,7 @@ export class ChatSidebarComponent {
   selectedTab = signal<'all' | 'channel' | 'bot' | 'service'>('all');
   activeMenuChat = signal<any>(null);
   contactsSearchQuery = signal<string>('');
+  selectedChatFilter = signal<ConversationFilter>('ALL');
 
   recentContacts = signal<RecentContact[]>([
     { id: '1', name: 'John', fallbackText: 'J', fallbackBg: 'bg-emerald-500' },
@@ -133,7 +134,7 @@ export class ChatSidebarComponent {
   ]);
 
   contacts = signal([
-    { id: '1', name: 'Ali Rezaei', phone: '+98 912 111 2233', online: true, lastSeen: 'online' },
+    { id: '1', name: 'Ali Rezaei', phone: '+98 912 111 2233', online: true, lastSeen: 'online', avatar: 'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp'},
     { id: '2', name: 'Amirhossein', phone: '+98 935 222 4455', online: false, lastSeen: 'last seen 2 hours ago' },
     { id: '3', name: 'Daniel Smith', phone: '+1 415 555 0199', online: true, lastSeen: 'online' },
     { id: '4', name: 'Ehsan Mohammadi', phone: '+98 912 888 9900', online: false, lastSeen: 'last seen yesterday' },
@@ -192,6 +193,28 @@ export class ChatSidebarComponent {
       item.name.toLowerCase().includes(q) ||
       (item.username && item.username.toLowerCase().includes(q))
     );
+  });
+
+  filteredConversations = computed(() => {
+    const filter = this.selectedChatFilter();
+    const query = this.searchQuery().trim().toLowerCase();
+    const conversations = this.chatService.conversations() || [];
+
+    return conversations.filter(chat => {
+      const matchesType = filter === 'ALL' || chat.type?.toUpperCase() === filter;
+      const matchesSearch = !query || chat.name.toLowerCase().includes(query) || (chat.lastMessage?.toLowerCase().includes(query) ?? false);
+      return matchesType && matchesSearch;
+    });
+  });
+
+  chatCounts = computed(() => {
+    const list = this.chatService.conversations() || [];
+    return {
+      all: list.length,
+      dm: list.filter(c => c.type?.toUpperCase() === 'DM').length,
+      group: list.filter(c => c.type?.toUpperCase() === 'GROUP').length,
+      channel: list.filter(c => c.type?.toUpperCase() === 'CHANNEL').length,
+    };
   });
 
   groupedContacts = computed(() => {
@@ -261,13 +284,17 @@ export class ChatSidebarComponent {
   }
 
   onSelectContact(contact: any) {
-    
-  this.router.navigate(['/chat'], { queryParams: { id: contact.id } });
+
+    this.router.navigate(['/chat'], { queryParams: { id: contact.id } });
     this.backToChats();
   }
 
   onAddContact() {
     console.log('Add contact triggered');
+  }
+
+  setFilter(filter: ConversationFilter): void {
+    this.selectedChatFilter.set(filter);
   }
 
   onNewContactAdded(newContact: NewContactData): void {

@@ -1,10 +1,14 @@
 import { Message } from "./message.model";
 import { User } from "./user.model";
 
+export type ConversationType = 'DM' | 'GROUP' | 'CHANNEL';
+export type ConversationFilter = 'ALL' | ConversationType;
+
 export interface Conversation {
   id: string | number;
   name: string;
   avatar?: string;
+  type: ConversationType;
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
