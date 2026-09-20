@@ -16,4 +16,5 @@ export interface Contact {
   updatedAt: string;
   contactUser: ContactUser;
   online?: boolean;
+  roomId?: string
 }

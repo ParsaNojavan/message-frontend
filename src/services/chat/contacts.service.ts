@@ -4,7 +4,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Contact, ContactUser } from '../../models/contact.model';
-import { AddContactDto, ContactsResponse, EditContactDto } from '../../models/dto/contact.dto' 
+import { AddContactDto, ContactsResponse, EditContactDto } from '../../models/dto/contact.dto'
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +32,23 @@ export class ContactsService {
         this.contacts.set(list);
         this.nextCursor.set(res.data?.pagination?.nextCursor ?? null);
         this.hasNextPage.set(res.data?.pagination?.hasNextPage ?? false);
+      })
+    );
+  }
+
+  getOrCreateRoom(contactUserId: string): Observable<{ success: boolean; data: string }> {
+    return this.http.post<{ success: boolean; data: string }>(
+      `${this.apiUrl}/${contactUserId}/room`,
+      {}
+    ).pipe(
+      tap((res) => {
+        const newRoomId = res.data;
+        this.contacts.update((list) =>
+          list.map((contact) =>
+            contact.contactUserId === contactUserId || contact.contactUser?._id === contactUserId
+              ? { ...contact, roomId: newRoomId } : contact
+          )
+        );
       })
     );
   }

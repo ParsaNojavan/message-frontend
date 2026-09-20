@@ -203,7 +203,7 @@ export class ChatSidebarComponent implements OnInit {
   getContactInitials(contact: Contact): string {
     const first = contact.customFirstName || contact.contactUser?.firstName || '';
     const last = contact.customLastName || contact.contactUser?.lastName || '';
-    
+
     if (first || last) {
       const f = first ? first.charAt(0).toUpperCase() : '';
       const l = last ? last.charAt(0).toUpperCase() : '';
@@ -214,7 +214,7 @@ export class ChatSidebarComponent implements OnInit {
 
   groupedContacts = computed(() => {
     const query = this.contactsSearchQuery().toLowerCase().trim();
-    
+
     const filtered = this.contacts().filter((c: Contact) => {
       const fullName = this.getContactFullName(c).toLowerCase();
       const phoneMatch = (c.contactUser?.phoneNumber || '').includes(query);
@@ -277,8 +277,23 @@ export class ChatSidebarComponent implements OnInit {
   }
 
   onSelectContact(contact: Contact): void {
-    const targetId = contact.contactUser._id;
-    this.router.navigate(['/chat'], { queryParams: { id: targetId } });
+    const contactUserId = contact.contactUserId || contact.contactUser?._id;
+    const fullName = this.getContactFullName(contact);
+
+    if (contact.roomId) {
+      this.router.navigate(['/chat'], {
+        queryParams: { id: contact.roomId }
+      });
+    } else if (contactUserId) {
+      this.router.navigate(['/chat'], {
+        queryParams: {
+          userId: contactUserId,
+          name: fullName !== 'Unknown' ? fullName : undefined
+        },
+        state: { contact }
+      });
+    }
+
     this.backToChats();
   }
 

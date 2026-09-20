@@ -2,13 +2,15 @@ import { Injectable, signal, computed, inject, DestroyRef, effect } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, map, of, switchMap, tap } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, of, switchMap, tap } from 'rxjs';
 import { Conversation } from '../../models/conversation.model';
 import { Message } from '../../models/message.model';
 import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
 import { BackendMessagesResponse } from '../../models/dto/message.dto';
 import { RoomMuteResponse } from '../../models/dto/roomMute.dto';
+import { ContactsService } from './contacts.service';
+import { Contact } from '../../models/contact.model';
 
 @Injectable({
   providedIn: 'root'
@@ -284,4 +286,9 @@ export class ChatService {
       })
     );
   }
+
+  startDirectChat(targetUserId: string): Observable<any> {
+    return this.http.get<any>(`${this.API_URL}/user/contacts/${targetUserId}/room`);
+  }
+
 }

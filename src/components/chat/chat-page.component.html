@@ -1,25 +1,17 @@
 <div class="flex h-screen w-full overflow-hidden bg-background" dir="ltr">
-    
-    <!-- Chat List Sidebar -->
-    <!-- در موبایل: اگر مکالمه‌ای باز باشد مخفی می‌شود | در دسکتاپ: همیشه با کلاس md:flex نمایش داده می‌شود -->
-    <aside 
-        [class.hidden]="chatService.activeConversationId()" 
+
+    <aside [class.hidden]="isChatOpen()"
         class="w-full md:w-80 lg:w-96 border-r border-border h-full flex-col shrink-0 md:flex">
         <app-chat-sidebar class="h-full w-full"></app-chat-sidebar>
     </aside>
 
-    <!-- Active Chat Window / Empty State -->
-    <!-- در موبایل: فقط وقتی چت فعال باشد نمایش داده می‌شود | در دسکتاپ: همیشه فضای اصلی را پر می‌کند -->
-    <main 
-        [class.hidden]="!chatService.activeConversationId()" 
-        class="flex-1 h-full flex-col md:flex">
-        @if (chatService.activeConversationId()) {
-            <app-chat-window class="h-full w-full"></app-chat-window>
+    <main [class.hidden]="!isChatOpen()" class="flex-1 h-full flex-col md:flex">
+        @if (isChatOpen()) {
+        <app-chat-window class="h-full w-full"></app-chat-window>
         } @else {
-            <!-- وضعیت پیش‌فرض خالی (فقط در دسکتاپ نمایش داده می‌شود) -->
-            <div class="hidden md:flex flex-1 flex-col items-center justify-center text-muted-foreground gap-2">
-                <span class="text-sm">Select a conversation to start messaging</span>
-            </div>
+        <div class="hidden md:flex flex-1 flex-col items-center justify-center text-muted-foreground gap-2">
+            <span class="text-sm">Select a conversation to start messaging</span>
+        </div>
         }
     </main>
 
