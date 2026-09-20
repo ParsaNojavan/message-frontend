@@ -31,67 +31,47 @@
                     title="Contacts">
                     <ng-icon name="lucideUsers" class="text-lg"></ng-icon>
                 </button>
-
-                <!-- New Chat / Action Dialog Trigger -->
-                <button
-                    class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors shrink-0 cursor-pointer"
-                    title="New Chat">
-                    <ng-icon name="lucidePlus" class="text-lg"></ng-icon>
-                </button>
             </div>
         </div>
 
         <!-- Dynamic Chat Filter Tabs -->
         <div class="flex items-center gap-1.5 text-xs overflow-x-auto [scrollbar-width:none] pb-1">
             <!-- ALL -->
-            <button
-                type="button"
-                (click)="setFilter('ALL')"
-                [class.bg-emerald-600]="selectedChatFilter() === 'ALL'"
-                [class.text-white]="selectedChatFilter() === 'ALL'"
-                [class.shadow-sm]="selectedChatFilter() === 'ALL'"
+            <button type="button" (click)="setFilter('ALL')" [class.bg-emerald-600]="selectedChatFilter() === 'ALL'"
+                [class.text-white]="selectedChatFilter() === 'ALL'" [class.shadow-sm]="selectedChatFilter() === 'ALL'"
                 [class.text-zinc-600]="selectedChatFilter() !== 'ALL'"
                 [class.dark:text-zinc-400]="selectedChatFilter() !== 'ALL'"
                 class="flex items-center gap-1.5 px-3 py-1 rounded-full font-medium shrink-0 transition-all cursor-pointer hover:bg-zinc-200/70 dark:hover:bg-zinc-800">
                 <span>All</span>
                 @if (chatCounts().all > 0) {
-                    <span
-                        class="text-[10px] px-1.5 py-0.2 rounded-full font-semibold"
-                        [class.bg-white/20]="selectedChatFilter() === 'ALL'"
-                        [class.bg-zinc-200]="selectedChatFilter() !== 'ALL'"
-                        [class.dark:bg-zinc-800]="selectedChatFilter() !== 'ALL'">
-                        {{ chatCounts().all }}
-                    </span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                    [class.bg-white/20]="selectedChatFilter() === 'ALL'"
+                    [class.bg-zinc-200]="selectedChatFilter() !== 'ALL'"
+                    [class.dark:bg-zinc-800]="selectedChatFilter() !== 'ALL'">
+                    {{ chatCounts().all }}
+                </span>
                 }
             </button>
 
             <!-- DIRECT (DM) -->
-            <button
-                type="button"
-                (click)="setFilter('DM')"
-                [class.bg-emerald-600]="selectedChatFilter() === 'DM'"
-                [class.text-white]="selectedChatFilter() === 'DM'"
-                [class.shadow-sm]="selectedChatFilter() === 'DM'"
+            <button type="button" (click)="setFilter('DM')" [class.bg-emerald-600]="selectedChatFilter() === 'DM'"
+                [class.text-white]="selectedChatFilter() === 'DM'" [class.shadow-sm]="selectedChatFilter() === 'DM'"
                 [class.text-zinc-600]="selectedChatFilter() !== 'DM'"
                 [class.dark:text-zinc-400]="selectedChatFilter() !== 'DM'"
                 class="flex items-center gap-1.5 px-3 py-1 rounded-full font-medium shrink-0 transition-all cursor-pointer hover:bg-zinc-200/70 dark:hover:bg-zinc-800">
                 <span>Direct</span>
                 @if (chatCounts().dm > 0) {
-                    <span
-                        class="text-[10px] px-1.5 py-0.2 rounded-full font-semibold"
-                        [class.bg-white/20]="selectedChatFilter() === 'DM'"
-                        [class.bg-zinc-200]="selectedChatFilter() !== 'DM'"
-                        [class.dark:bg-zinc-800]="selectedChatFilter() !== 'DM'">
-                        {{ chatCounts().dm }}
-                    </span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                    [class.bg-white/20]="selectedChatFilter() === 'DM'"
+                    [class.bg-zinc-200]="selectedChatFilter() !== 'DM'"
+                    [class.dark:bg-zinc-800]="selectedChatFilter() !== 'DM'">
+                    {{ chatCounts().dm }}
+                </span>
                 }
             </button>
 
             <!-- GROUPS -->
-            <button
-                type="button"
-                (click)="setFilter('GROUP')"
-                [class.bg-emerald-600]="selectedChatFilter() === 'GROUP'"
+            <button type="button" (click)="setFilter('GROUP')" [class.bg-emerald-600]="selectedChatFilter() === 'GROUP'"
                 [class.text-white]="selectedChatFilter() === 'GROUP'"
                 [class.shadow-sm]="selectedChatFilter() === 'GROUP'"
                 [class.text-zinc-600]="selectedChatFilter() !== 'GROUP'"
@@ -99,20 +79,17 @@
                 class="flex items-center gap-1.5 px-3 py-1 rounded-full font-medium shrink-0 transition-all cursor-pointer hover:bg-zinc-200/70 dark:hover:bg-zinc-800">
                 <span>Groups</span>
                 @if (chatCounts().group > 0) {
-                    <span
-                        class="text-[10px] px-1.5 py-0.2 rounded-full font-semibold"
-                        [class.bg-white/20]="selectedChatFilter() === 'GROUP'"
-                        [class.bg-zinc-200]="selectedChatFilter() !== 'GROUP'"
-                        [class.dark:bg-zinc-800]="selectedChatFilter() !== 'GROUP'">
-                        {{ chatCounts().group }}
-                    </span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                    [class.bg-white/20]="selectedChatFilter() === 'GROUP'"
+                    [class.bg-zinc-200]="selectedChatFilter() !== 'GROUP'"
+                    [class.dark:bg-zinc-800]="selectedChatFilter() !== 'GROUP'">
+                    {{ chatCounts().group }}
+                </span>
                 }
             </button>
 
             <!-- CHANNELS -->
-            <button
-                type="button"
-                (click)="setFilter('CHANNEL')"
+            <button type="button" (click)="setFilter('CHANNEL')"
                 [class.bg-emerald-600]="selectedChatFilter() === 'CHANNEL'"
                 [class.text-white]="selectedChatFilter() === 'CHANNEL'"
                 [class.shadow-sm]="selectedChatFilter() === 'CHANNEL'"
@@ -121,13 +98,12 @@
                 class="flex items-center gap-1.5 px-3 py-1 rounded-full font-medium shrink-0 transition-all cursor-pointer hover:bg-zinc-200/70 dark:hover:bg-zinc-800">
                 <span>Channels</span>
                 @if (chatCounts().channel > 0) {
-                    <span
-                        class="text-[10px] px-1.5 py-0.2 rounded-full font-semibold"
-                        [class.bg-white/20]="selectedChatFilter() === 'CHANNEL'"
-                        [class.bg-zinc-200]="selectedChatFilter() !== 'CHANNEL'"
-                        [class.dark:bg-zinc-800]="selectedChatFilter() !== 'CHANNEL'">
-                        {{ chatCounts().channel }}
-                    </span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                    [class.bg-white/20]="selectedChatFilter() === 'CHANNEL'"
+                    [class.bg-zinc-200]="selectedChatFilter() !== 'CHANNEL'"
+                    [class.dark:bg-zinc-800]="selectedChatFilter() !== 'CHANNEL'">
+                    {{ chatCounts().channel }}
+                </span>
                 }
             </button>
         </div>
@@ -146,7 +122,7 @@
                 <img *ngIf="chat.avatar" [src]="chat.avatar" hlmAvatarImage [alt]="chat.name" />
                 <span hlmAvatarFallback
                     class="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-sm">
-                    {{ chat.name.charAt(0).toUpperCase() }}
+                    {{ (chat.name || '?').charAt(0).toUpperCase() }}
                 </span>
             </hlm-avatar>
 
@@ -249,9 +225,9 @@
                     <ng-icon name="lucideArrowLeft" class="text-base"></ng-icon>
                 </button>
 
-                <!-- Input Field with Emerald Theme Accent -->
+                <!-- Input Field -->
                 <input #searchInput type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
-                    placeholder="Search channels, bots, and messages..." autofocus
+                    placeholder="Search messages, contacts, groups..." autofocus
                     class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-10 pr-9 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none transition-all shadow-inner" />
 
                 <!-- Clear Button -->
@@ -275,6 +251,24 @@
                     All
                 </button>
 
+                <button (click)="selectedTab.set('dm')" [class.text-emerald-600]="selectedTab() === 'dm'"
+                    [class.dark:text-emerald-400]="selectedTab() === 'dm'" [class.border-b-2]="selectedTab() === 'dm'"
+                    [class.border-emerald-600]="selectedTab() === 'dm'"
+                    [class.dark:border-emerald-400]="selectedTab() === 'dm'" [class.font-bold]="selectedTab() === 'dm'"
+                    class="pb-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all cursor-pointer">
+                    Direct
+                </button>
+
+                <button (click)="selectedTab.set('group')" [class.text-emerald-600]="selectedTab() === 'group'"
+                    [class.dark:text-emerald-400]="selectedTab() === 'group'"
+                    [class.border-b-2]="selectedTab() === 'group'"
+                    [class.border-emerald-600]="selectedTab() === 'group'"
+                    [class.dark:border-emerald-400]="selectedTab() === 'group'"
+                    [class.font-bold]="selectedTab() === 'group'"
+                    class="pb-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all cursor-pointer">
+                    Groups
+                </button>
+
                 <button (click)="selectedTab.set('channel')" [class.text-emerald-600]="selectedTab() === 'channel'"
                     [class.dark:text-emerald-400]="selectedTab() === 'channel'"
                     [class.border-b-2]="selectedTab() === 'channel'"
@@ -284,25 +278,6 @@
                     class="pb-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all cursor-pointer">
                     Channels
                 </button>
-
-                <button (click)="selectedTab.set('bot')" [class.text-emerald-600]="selectedTab() === 'bot'"
-                    [class.dark:text-emerald-400]="selectedTab() === 'bot'" [class.border-b-2]="selectedTab() === 'bot'"
-                    [class.border-emerald-600]="selectedTab() === 'bot'"
-                    [class.dark:border-emerald-400]="selectedTab() === 'bot'"
-                    [class.font-bold]="selectedTab() === 'bot'"
-                    class="pb-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all cursor-pointer">
-                    Bots
-                </button>
-
-                <button (click)="selectedTab.set('service')" [class.text-emerald-600]="selectedTab() === 'service'"
-                    [class.dark:text-emerald-400]="selectedTab() === 'service'"
-                    [class.border-b-2]="selectedTab() === 'service'"
-                    [class.border-emerald-600]="selectedTab() === 'service'"
-                    [class.dark:border-emerald-400]="selectedTab() === 'service'"
-                    [class.font-bold]="selectedTab() === 'service'"
-                    class="pb-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all cursor-pointer">
-                    Services
-                </button>
             </div>
         </div>
 
@@ -310,27 +285,28 @@
         <div class="flex-1 overflow-y-auto [scrollbar-width:thin]">
             @if (!searchQuery().trim()) {
             <!-- Horizontal Recent Contacts -->
+            @if (recentContacts().length > 0) {
             <div class="p-3 border-b border-border/40">
                 <div class="flex items-center gap-4 overflow-x-auto no-scrollbar py-1">
-                    @for (contact of recentContacts(); track contact.id) {
-                    <div (click)="onSelectResult(contact)"
+                    @for (contact of recentContacts(); track contact._id) {
+                    <div (click)="onSelectContact(contact)"
                         class="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer group">
-                        <div class="size-14 rounded-full overflow-hidden flex items-center justify-center text-base font-bold shadow-md transition-transform group-hover:scale-105"
-                            [ngClass]="contact.fallbackBg || 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100'">
-                            @if (contact.avatar) {
-                            <img [src]="contact.avatar" [alt]="contact.name" class="w-full h-full object-cover" />
-                            } @else {
-                            {{ contact.fallbackText }}
-                            }
-                        </div>
+                        <hlm-avatar class="size-12 shadow-md transition-transform group-hover:scale-105">
+                            <img *ngIf="contact.contactUser?.avatar" [src]="contact.contactUser?.avatar" hlmAvatarImage [alt]="getContactFullName(contact)" />
+                            <span hlmAvatarFallback
+                                class="bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100 font-bold text-xs">
+                                {{ getContactInitials(contact) }}
+                            </span>
+                        </hlm-avatar>
                         <span
                             class="text-xs text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white max-w-[64px] truncate text-center">
-                            {{ contact.name }}
+                            {{ getContactFullName(contact) }}
                         </span>
                     </div>
                     }
                 </div>
             </div>
+            }
 
             <!-- Recent Searches List -->
             <div class="p-3 space-y-3">
@@ -348,13 +324,14 @@
                         class="flex items-center justify-between p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group">
 
                         <div class="flex items-center gap-3">
-                            <div class="size-11 rounded-full flex items-center justify-center font-bold text-sm text-white shrink-0"
+                            <div class="size-10 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0"
                                 [ngClass]="item.fallbackBg || 'bg-emerald-600'">
                                 {{ item.fallbackText }}
                             </div>
                             <span
-                                class="text-sm font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white">{{
-                                item.name }}</span>
+                                class="text-sm font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white">
+                                {{ item.name }}
+                            </span>
                         </div>
                     </div>
                     }
@@ -375,14 +352,13 @@
                     class="flex items-center justify-between p-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group border border-transparent hover:border-border/40">
 
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="size-11 rounded-full overflow-hidden flex items-center justify-center font-bold text-sm shrink-0 shadow"
-                            [ngClass]="result.fallbackBg || 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'">
-                            @if (result.avatar) {
-                            <img [src]="result.avatar" [alt]="result.name" class="w-full h-full object-cover" />
-                            } @else {
-                            {{ result.fallbackText }}
-                            }
-                        </div>
+                        <hlm-avatar class="size-11 shrink-0 shadow">
+                            <img *ngIf="result.avatar" [src]="result.avatar" hlmAvatarImage [alt]="result.name" />
+                            <span hlmAvatarFallback
+                                class="bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 font-bold text-sm">
+                                {{ result.fallbackText || result.name.charAt(0).toUpperCase() }}
+                            </span>
+                        </hlm-avatar>
 
                         <div class="min-w-0">
                             <div class="flex items-center gap-1.5">
@@ -393,7 +369,7 @@
                                 @if (result.verified) {
                                 <ng-icon name="lucideBadgeCheck" class="text-emerald-500 text-base shrink-0"></ng-icon>
                                 }
-                                @if (result.type === 'channel') {
+                                @if (result.type === 'channel' || result.type === 'group') {
                                 <ng-icon name="lucideUsers"
                                     class="text-zinc-400 dark:text-zinc-500 text-xs shrink-0"></ng-icon>
                                 }
@@ -442,22 +418,25 @@
                     <h3 class="font-bold text-base text-zinc-900 dark:text-zinc-100">Contacts</h3>
                 </div>
 
-                <div class="flex items-center gap-1">
-                    <app-add-contact-dialog (contactAdded)="onNewContactAdded($event)"></app-add-contact-dialog>
-                </div>
+                <app-add-contact-dialog (contactAdded)="onNewContactAdded($event)">
+                    <button
+                        class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                        title="Add Contact">
+                        <ng-icon name="lucideUserPlus" class="text-lg"></ng-icon>
+                    </button>
+                </app-add-contact-dialog>
             </div>
 
             <!-- Contacts Search Input -->
             <div class="relative flex items-center w-full">
-                <ng-icon name="lucideSearch"
-                    class="absolute left-3.5 text-zinc-400 text-sm pointer-events-none"></ng-icon>
+                <ng-icon name="lucideSearch" class="absolute left-3 text-zinc-400 text-sm"></ng-icon>
                 <input type="text" [ngModel]="contactsSearchQuery()" (ngModelChange)="contactsSearchQuery.set($event)"
                     placeholder="Search contacts..."
-                    class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-9 pr-9 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none transition-all shadow-inner" />
+                    class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-xs rounded-xl py-2 pl-9 pr-8 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 outline-none transition-all" />
 
                 @if (contactsSearchQuery()) {
                 <button (click)="contactsSearchQuery.set('')"
-                    class="absolute right-2 inset-y-0 my-auto inline-flex items-center justify-center size-6 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+                    class="absolute right-2.5 inline-flex items-center justify-center size-5 rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer">
                     <ng-icon name="lucideX" class="text-xs"></ng-icon>
                 </button>
                 }
@@ -482,46 +461,32 @@
                 </div>
 
                 <div class="divide-y divide-border/20">
-                    @for (contact of group.contacts; track contact.id) {
+                    @for (contact of group.contacts; track contact._id) {
                     <div (click)="onSelectContact(contact)"
                         class="flex items-center justify-between px-3 py-2.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors group">
 
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="relative shrink-0">
                                 <hlm-avatar class="size-10">
-                                    <img *ngIf="contact.avatar" [src]="contact.avatar" hlmAvatarImage [alt]="contact.name" />
+                                    <img *ngIf="contact.contactUser?.avatar" [src]="contact.contactUser.avatar" hlmAvatarImage
+                                        [alt]="getContactFullName(contact)" />
                                     <span hlmAvatarFallback
                                         class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-bold">
-                                        {{ contact.name.charAt(0).toUpperCase() }}
+                                        {{ getContactInitials(contact) }}
                                     </span>
                                 </hlm-avatar>
-
-                                @if (contact.online) {
-                                <span
-                                    class="absolute bottom-0 right-0 size-2.5 bg-emerald-500 border-2 border-card rounded-full"></span>
-                                }
                             </div>
 
                             <div class="min-w-0">
                                 <h4
                                     class="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                                    {{ contact.name }}
+                                    {{ getContactFullName(contact) }}
                                 </h4>
-                                <p class="text-xs truncate" [class.text-emerald-600]="contact.online"
-                                    [class.dark:text-emerald-400]="contact.online"
-                                    [class.text-zinc-500]="!contact.online"
-                                    [class.dark:text-zinc-400]="!contact.online">
-                                    {{ contact.lastSeen }}
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                                    {{ contact.contactUser?.phoneNumber || (contact.contactUser?.firstName) }}
                                 </p>
                             </div>
                         </div>
-
-                        <!-- Quick Message Action -->
-                        <button (click)="$event.stopPropagation(); onSelectContact(contact)"
-                            class="size-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/50 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                            title="Message">
-                            <ng-icon name="lucideMessageSquare" class="text-base"></ng-icon>
-                        </button>
                     </div>
                     }
                 </div>
@@ -543,7 +508,7 @@
             </button>
 
             <button hlmBtn variant="outline" size="sm" (click)="this.themeService.toggleTheme()"
-                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors border-zinc-200 dark:border-zinc-800">
+                class="inline-flex items-center justify-center size-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors border-zinc-200 dark:border-zinc-800 cursor-pointer">
                 @if (this.themeService.isDarkMode()) {
                 <ng-icon name="lucideSun" class="text-lg text-zinc-400"></ng-icon>
                 } @else {
@@ -564,7 +529,8 @@
 
             <div class="text-center mt-1">
                 <h2 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Parsa Nojavan</h2>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tracking-wide">+98 937 234 7173 &nbsp;|&nbsp; @parsanojavan</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 tracking-wide">+98 937 234 7173
+                    &nbsp;|&nbsp; @parsanojavan</p>
             </div>
         </div>
 
@@ -580,7 +546,7 @@
                 <span class="flex-1 text-left font-medium">Contacts</span>
             </button>
 
-            <button (click)="onMenuItemClick('saved-messages')"
+            <button (click)="handleAction('saved-messages')"
                 class="w-full flex items-center gap-4 px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer">
                 <ng-icon name="lucideBookmark" class="text-xl text-zinc-400 shrink-0"></ng-icon>
                 <span class="flex-1 text-left font-medium">Saved Messages</span>
@@ -600,7 +566,7 @@
                 <span class="flex-1 text-left font-medium">Support Service</span>
             </button>
 
-            <button (click)="onMenuItemClick('guide')"
+            <button (click)="handleAction('guide')"
                 class="w-full flex items-center gap-4 px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer">
                 <ng-icon name="lucideHelpCircle" class="text-xl text-zinc-400 shrink-0"></ng-icon>
                 <span class="flex-1 text-left font-medium">Guide Channel</span>

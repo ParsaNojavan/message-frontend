@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { ContactsService } from '../../../services/chat/contacts.service';
 import {
   lucideUserPlus,
   lucideX,
@@ -10,6 +11,7 @@ import {
   lucidePhone,
   lucideAtSign
 } from '@ng-icons/lucide';
+import { AddContactDto } from '../../../models/dto/contact.dto';
 
 export interface NewContactData {
   firstName: string;
@@ -140,6 +142,9 @@ export interface NewContactData {
   `
 })
 export class AddContactDialogComponent {
+
+  contactService = inject(ContactsService);
+
   firstName = signal('');
   lastName = signal('');
   phoneOrUsername = signal('');
@@ -149,16 +154,36 @@ export class AddContactDialogComponent {
   onSubmit(ctx: any) {
     if (!this.firstName().trim() || !this.phoneOrUsername().trim()) return;
 
-    this.contactAdded.emit({
-      firstName: this.firstName().trim(),
-      lastName: this.lastName().trim(),
-      phoneOrUsername: this.phoneOrUsername().trim(),
-      online: true
-    });
+    // شیء متناسب با ساختار AddContactDto
+    const dto: AddContactDto = {
+      query: this.phoneOrUsername().trim(), // فیلدی که DTO انتظار دارد
+      customFirstName: this.firstName().trim(),
+      customLastName: this.lastName().trim(),
+    };
 
+    this.contactService.addContact(dto).subscribe({
+      next: (response) => {
+        // آبجکت نهایی برای استفاده در فرانت‌اند
+        this.contactAdded.emit({
+          firstName: this.firstName().trim(),
+          lastName: this.lastName().trim(),
+          phoneOrUsername: this.phoneOrUsername().trim(),
+          online: true
+        });
+        this.resetForm();
+        ctx.close();
+      },
+      error: (err) => {
+        console.error('خطا در ثبت مخاطب:', err);
+      }
+    });
+  }
+
+
+  resetForm() {
     this.firstName.set('');
     this.lastName.set('');
     this.phoneOrUsername.set('');
-    ctx.close();
   }
+
 }
