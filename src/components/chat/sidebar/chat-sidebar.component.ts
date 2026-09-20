@@ -1,9 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChatService } from '../../../services/chat/chat.service';
 import { ThemeService } from '../../../services/theme/theme.service';
+import { ContactsService } from '../../../services/chat/contacts.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
   lucideSearch,
@@ -12,6 +13,7 @@ import {
   lucideArrowLeft,
   lucideArrowRight,
   lucideSun,
+  lucideMoon,
   lucidePencil,
   lucideUser,
   lucideBookmark,
@@ -28,7 +30,6 @@ import {
   lucideBadgeCheck,
   lucideBot,
   lucidePhone,
-  lucideMoon,
   lucideSparkles,
   lucideBug,
   lucideLogOut,
@@ -37,7 +38,9 @@ import {
   lucideMessageSquareDot,
   lucideBellOff,
   lucideArchive,
-  lucideCheckSquare
+  lucideCheckSquare,
+  lucideMessageSquare,
+  lucideUserPlus
 } from '@ng-icons/lucide';
 
 // Spartan UI Imports
@@ -55,6 +58,7 @@ import { CreateChannelDialogComponent } from '../modals/channel-dialog.component
 import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
 import { AddContactDialogComponent, NewContactData } from '../modals/add-contact-dialog.component';
 import { ConversationFilter, RecentContact, SearchResultItem } from '../../../models/conversation.model';
+import { Contact } from '../../../models/contact.model';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -62,19 +66,19 @@ import { ConversationFilter, RecentContact, SearchResultItem } from '../../../mo
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     NgIconComponent,
     HlmInputImports,
     HlmAvatarImports,
     HlmBadgeImports,
     HlmDialogImports,
+    HlmContextMenuImports,
+    HlmDropdownMenuImports,
     AccountSettingsComponent,
     SettingsDialogComponent,
     CreateChannelDialogComponent,
     CreateGroupDialogComponent,
-    HlmContextMenuImports,
-    HlmDropdownMenuImports,
-    AddContactDialogComponent,
-    RouterLink
+    AddContactDialogComponent
   ],
   providers: [
     provideIcons({
@@ -84,6 +88,7 @@ import { ConversationFilter, RecentContact, SearchResultItem } from '../../../mo
       lucideArrowLeft,
       lucideArrowRight,
       lucideSun,
+      lucideMoon,
       lucidePencil,
       lucideUser,
       lucideBookmark,
@@ -98,84 +103,53 @@ import { ConversationFilter, RecentContact, SearchResultItem } from '../../../mo
       lucideClock,
       lucideTrash2,
       lucideBadgeCheck,
+      lucideBot,
+      lucidePhone,
+      lucideSparkles,
+      lucideBug,
+      lucideLogOut,
       lucidePinOff,
       lucideFolderPlus,
       lucideMessageSquareDot,
       lucideBellOff,
       lucideArchive,
       lucideCheckSquare,
-      lucideMoon
+      lucideMessageSquare,
+      lucideUserPlus
     })
   ],
   templateUrl: './chat-sidebar.component.html'
 })
-export class ChatSidebarComponent {
+export class ChatSidebarComponent implements OnInit {
   readonly chatService = inject(ChatService);
   readonly themeService = inject(ThemeService);
+  readonly contactsService = inject(ContactsService);
   readonly router = inject(Router);
 
   currentView = signal<'chats' | 'search' | 'profile' | 'contacts'>('chats');
   searchQuery = signal<string>('');
-  selectedTab = signal<'all' | 'channel' | 'bot' | 'service'>('all');
+  selectedTab = signal<'all' | 'group' | 'channel' | 'dm'>('all');
   activeMenuChat = signal<any>(null);
   contactsSearchQuery = signal<string>('');
   selectedChatFilter = signal<ConversationFilter>('ALL');
 
-  recentContacts = signal<RecentContact[]>([
-    { id: '1', name: 'John', fallbackText: 'J', fallbackBg: 'bg-emerald-500' },
-    { id: '2', name: 'Kevin', fallbackText: 'K', fallbackBg: 'bg-emerald-500' },
-    { id: '3', name: 'Nia', fallbackText: 'N', fallbackBg: 'bg-emerald-500' },
-    { id: '4', name: 'Arman', fallbackText: 'A', fallbackBg: 'bg-emerald-500' }
-  ]);
+  contacts = this.contactsService.contacts;
+
+  recentContacts = computed(() => {
+    return this.contacts().slice(0, 8);
+  });
 
   recentSearches = signal<RecentContact[]>([
-    { id: 'rec-1', name: 'Mom', fallbackText: 'M', fallbackBg: 'bg-emerald-500' },
-    { id: 'rec-2', name: 'Dad', fallbackText: 'D', fallbackBg: 'bg-emerald-500' }
+    { id: 'rec-1', name: 'Saved Messages', fallbackText: 'SM', fallbackBg: 'bg-emerald-500' }
   ]);
 
-  contacts = signal([
-    { id: '1', name: 'Ali Rezaei', phone: '+98 912 111 2233', online: true, lastSeen: 'online', avatar: 'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp'},
-    { id: '2', name: 'Amirhossein', phone: '+98 935 222 4455', online: false, lastSeen: 'last seen 2 hours ago' },
-    { id: '3', name: 'Daniel Smith', phone: '+1 415 555 0199', online: true, lastSeen: 'online' },
-    { id: '4', name: 'Ehsan Mohammadi', phone: '+98 912 888 9900', online: false, lastSeen: 'last seen yesterday' },
-    { id: '5', name: 'Sara Tehrani', phone: '+98 912 777 6655', online: true, lastSeen: 'online' },
-  ]);
+  allSearchItems = signal<SearchResultItem[]>([]);
 
-  allSearchItems = signal<SearchResultItem[]>([
-    {
-      id: '101',
-      name: 'ADLIRAN',
-      subInfo: '9.6M monthly users',
-      fallbackText: 'AD',
-      fallbackBg: 'bg-white text-zinc-900',
-      type: 'service',
-      verified: true,
-      actionText: 'Open'
-    },
-    {
-      id: '102',
-      name: 'Spartan Team',
-      subInfo: '44 members',
-      fallbackText: 'SA',
-      fallbackBg: 'bg-zinc-700',
-      type: 'channel'
-    },
-    {
-      id: '103',
-      name: 'Deleted Account',
-      fallbackText: 'D',
-      fallbackBg: 'bg-amber-500',
-      type: 'chat'
-    },
-    {
-      id: '104',
-      name: 'Mahdi Pakbaz',
-      username: '@spartan',
-      fallbackText: 'MP',
-      fallbackBg: 'bg-zinc-700',
-      type: 'bot'
-    }
-  ]);
+  ngOnInit(): void {
+    this.contactsService.getContacts().subscribe({
+      error: (err) => console.error('Failed to load contacts:', err)
+    });
+  }
 
   filteredResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
@@ -202,7 +176,10 @@ export class ChatSidebarComponent {
 
     return conversations.filter(chat => {
       const matchesType = filter === 'ALL' || chat.type?.toUpperCase() === filter;
-      const matchesSearch = !query || chat.name.toLowerCase().includes(query) || (chat.lastMessage?.toLowerCase().includes(query) ?? false);
+      const matchesSearch =
+        !query ||
+        chat.name.toLowerCase().includes(query) ||
+        (chat.lastMessage?.toLowerCase().includes(query) ?? false);
       return matchesType && matchesSearch;
     });
   });
@@ -213,21 +190,45 @@ export class ChatSidebarComponent {
       all: list.length,
       dm: list.filter(c => c.type?.toUpperCase() === 'DM').length,
       group: list.filter(c => c.type?.toUpperCase() === 'GROUP').length,
-      channel: list.filter(c => c.type?.toUpperCase() === 'CHANNEL').length,
+      channel: list.filter(c => c.type?.toUpperCase() === 'CHANNEL').length
     };
   });
 
+  getContactFullName(contact: Contact): string {
+    const first = contact.customFirstName || contact.contactUser?.firstName || '';
+    const last = contact.customLastName || contact.contactUser?.lastName || '';
+    return `${first} ${last}`.trim() || 'Unknown';
+  }
+
+  getContactInitials(contact: Contact): string {
+    const first = contact.customFirstName || contact.contactUser?.firstName || '';
+    const last = contact.customLastName || contact.contactUser?.lastName || '';
+    
+    if (first || last) {
+      const f = first ? first.charAt(0).toUpperCase() : '';
+      const l = last ? last.charAt(0).toUpperCase() : '';
+      return `${f}${l}` || '?';
+    }
+    return '?';
+  }
+
   groupedContacts = computed(() => {
     const query = this.contactsSearchQuery().toLowerCase().trim();
-    const filtered = this.contacts().filter(c =>
-      c.name.toLowerCase().includes(query) || (c.phone && c.phone.includes(query))
+    
+    const filtered = this.contacts().filter((c: Contact) => {
+      const fullName = this.getContactFullName(c).toLowerCase();
+      const phoneMatch = (c.contactUser?.phoneNumber || '').includes(query);
+      return fullName.includes(query) || phoneMatch;
+    });
+
+    const groups: { [key: string]: Contact[] } = {};
+    const sorted = [...filtered].sort((a: Contact, b: Contact) =>
+      this.getContactFullName(a).localeCompare(this.getContactFullName(b))
     );
 
-    const groups: { [key: string]: typeof filtered } = {};
-    const sorted = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
-
     for (const contact of sorted) {
-      const letter = (contact.name[0] || '#').toUpperCase();
+      const name = this.getContactFullName(contact);
+      const letter = (name[0] || '#').toUpperCase();
       if (!groups[letter]) groups[letter] = [];
       groups[letter].push(contact);
     }
@@ -248,6 +249,10 @@ export class ChatSidebarComponent {
     this.currentView.set('profile');
   }
 
+  openContacts(): void {
+    this.currentView.set('contacts');
+  }
+
   backToChats(): void {
     this.currentView.set('chats');
   }
@@ -260,6 +265,10 @@ export class ChatSidebarComponent {
     this.recentSearches.set([]);
   }
 
+  setFilter(filter: ConversationFilter): void {
+    this.selectedChatFilter.set(filter);
+  }
+
   onSelectResult(item: SearchResultItem | RecentContact): void {
     if ('id' in item) {
       this.router.navigate(['/chat'], { queryParams: { id: item.id } });
@@ -267,47 +276,39 @@ export class ChatSidebarComponent {
     }
   }
 
-  onMenuItemClick(action: string): void {
-    console.log('Action clicked:', action);
-  }
-
-  handleAction(action: string) {
-    console.log(`Action: ${action} for:`, this.activeMenuChat()?.name);
-  }
-
-  redirectSupport() {
-    this.router.navigate(['/support']);
-  }
-
-  openContacts() {
-    this.currentView.set('contacts');
-  }
-
-  onSelectContact(contact: any) {
-
-    this.router.navigate(['/chat'], { queryParams: { id: contact.id } });
+  onSelectContact(contact: Contact): void {
+    const targetId = contact.contactUser._id;
+    this.router.navigate(['/chat'], { queryParams: { id: targetId } });
     this.backToChats();
   }
 
-  onAddContact() {
-    console.log('Add contact triggered');
+  handleAction(action: string): void {
+    console.log(`Action: ${action} for chat:`, this.activeMenuChat()?.name);
   }
 
-  setFilter(filter: ConversationFilter): void {
-    this.selectedChatFilter.set(filter);
+  redirectSupport(): void {
+    this.router.navigate(['/support']);
+  }
+
+  getInitials(firstName?: string, lastName?: string): string {
+    if (!firstName && !lastName) return '?';
+    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return `${f}${l}`;
   }
 
   onNewContactAdded(newContact: NewContactData): void {
-    const fullName = `${newContact.firstName} ${newContact.lastName}`.trim();
-
-    const contactItem = {
-      id: crypto.randomUUID(),
-      name: fullName,
-      phone: newContact.phoneOrUsername,
-      online: false,
-      lastSeen: 'just now'
-    };
-
-    this.contacts.update(list => [contactItem, ...list]);
+    this.contactsService.addContact({
+      query: newContact.phoneOrUsername,
+      customFirstName: newContact.firstName,
+      customLastName: newContact.lastName
+    }).subscribe({
+      next: (created) => {
+        console.log('Contact added successfully:', created);
+      },
+      error: (err) => {
+        console.error('Failed to add contact:', err);
+      }
+    });
   }
 }

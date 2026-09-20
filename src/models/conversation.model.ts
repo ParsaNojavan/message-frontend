@@ -1,6 +1,3 @@
-import { Message } from "./message.model";
-import { User } from "./user.model";
-
 export type ConversationType = 'DM' | 'GROUP' | 'CHANNEL';
 export type ConversationFilter = 'ALL' | ConversationType;
 
@@ -24,7 +21,7 @@ export interface SearchResultItem {
   avatar?: string;
   fallbackText: string;
   fallbackBg?: string;
-  type: 'chat' | 'channel' | 'bot' | 'service';
+  type: 'chat' | 'channel' | 'group' | 'dm';
   verified?: boolean;
   subInfo?: string;
   actionText?: string;

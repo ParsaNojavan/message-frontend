@@ -162,10 +162,6 @@ export class ChatService {
       .subscribe({
         next: (mappedConversations) => {
           this.conversations.set(mappedConversations);
-
-          if (mappedConversations.length > 0 && !this.activeConversationId()) {
-            this.router.navigate(['/chat', mappedConversations[0].id]);
-          }
         },
         error: (error) => {
           console.error('Error loading chats: ', error);
