@@ -4,8 +4,7 @@ import {
   EventEmitter,
   Input,
   Output,
-  signal,
-  computed
+  signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
@@ -188,6 +187,7 @@ export interface GroupItem {
               </div>
             }
 
+            <!-- Notifications / Mute Toggle -->
             <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-accent/60 transition-colors">
               <div class="flex items-center gap-3">
                 <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-muted-foreground">
@@ -195,19 +195,21 @@ export interface GroupItem {
                 </div>
                 <div>
                   <div class="text-sm font-medium text-foreground">Notifications</div>
-                  <div class="text-[11px] text-muted-foreground mt-0.5">{{ isNotificationsOn() ? 'On' : 'Off' }}</div>
+                  <div class="text-[11px] text-muted-foreground mt-0.5">{{ isMuted ? 'Muted' : 'Unmuted' }}</div>
                 </div>
               </div>
 
               <button 
                 type="button"
+                role="switch"
+                [attr.aria-checked]="isMuted"
                 (click)="toggleNotifications()"
-                [class.bg-emerald-600]="isNotificationsOn()"
-                [class.bg-muted]="!isNotificationsOn()"
+                [class.bg-emerald-600]="isMuted"
+                [class.bg-muted]="!isMuted"
                 class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none">
                 <span 
-                  [class.translate-x-6]="isNotificationsOn()"
-                  [class.translate-x-1]="!isNotificationsOn()"
+                  [class.translate-x-6]="isMuted"
+                  [class.translate-x-1]="!isMuted"
                   class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out">
                 </span>
               </button>
@@ -361,12 +363,10 @@ export class UserProfileModalComponent {
   readonly activeTab = signal<TabType>('photos');
   readonly copied = signal(false);
 
-  private readonly internalNotifications = signal<boolean | null>(null);
-
-  readonly isNotificationsOn = computed(() => {
-    const internal = this.internalNotifications();
-    return internal !== null ? internal : (this.user?.notificationsEnabled ?? true);
-  });
+  // وضعیت میوت بودن مستقیماً بر اساس notificationsEnabled تعیین می‌شود
+  get isMuted(): boolean {
+    return this.user?.notificationsEnabled === false;
+  }
 
   get tabs(): { id: TabType; label: string; count: number }[] {
     return [
@@ -378,9 +378,11 @@ export class UserProfileModalComponent {
   }
 
   toggleNotifications(): void {
-    const nextState = !this.isNotificationsOn();
-    this.internalNotifications.set(nextState);
-    this.notificationsToggled.emit(nextState);
+    const nextMutedState = !this.isMuted;
+    if (this.user) {
+      this.user.notificationsEnabled = !nextMutedState;
+    }
+    this.notificationsToggled.emit(nextMutedState);
   }
 
   onStartChat(ctx: any): void {

@@ -9,6 +9,8 @@ export interface Conversation {
   lastMessageTime?: string;
   unreadCount?: number;
   isOnline?: boolean;
+  phoneNumber?: string
+  mutedUntil?: string | Date | null;
 }
 
 export interface SearchResultItem {
