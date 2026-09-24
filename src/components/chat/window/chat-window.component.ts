@@ -38,7 +38,8 @@ import {
   lucideDelete,
   lucideUsers,
   lucideArrowLeft,
-  lucideChevronRight, // 👈 اضافه شد جهت جلوگیری از ارور HTML
+  lucideChevronRight,
+  lucideChevronDown
 } from '@ng-icons/lucide';
 
 // Spartan UI New Imports
@@ -101,7 +102,8 @@ import { firstValueFrom } from 'rxjs';
       lucideDelete,
       lucideUsers,
       lucideArrowLeft,
-      lucideChevronRight
+      lucideChevronRight,
+      lucideChevronDown
     })
   ],
   templateUrl: './chat-window.component.html'
