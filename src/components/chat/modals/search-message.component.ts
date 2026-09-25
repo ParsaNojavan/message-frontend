@@ -44,6 +44,7 @@ import { Message } from '../../../models/message.model';
       <button
         hlmDialogTrigger
         type="button"
+        title="جستجو در پیام‌ها"
         class="inline-flex items-center justify-center size-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-150 shrink-0 cursor-pointer">
         <ng-icon name="lucideSearch" class="text-lg"></ng-icon>
       </button>
@@ -60,12 +61,12 @@ import { Message } from '../../../models/message.model';
               <span>Search in Chat</span>
             </h3>
             
-          <button 
-            type="button"
-            (click)="ctx.close()" 
-            class="size-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
-            <ng-icon name="lucideX" class="text-base"></ng-icon>
-          </button>
+            <button 
+              type="button"
+              (click)="ctx.close()" 
+              class="size-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+              <ng-icon name="lucideX" class="text-base"></ng-icon>
+            </button>
           </div>
 
           <div class="relative flex items-center">
@@ -155,12 +156,12 @@ import { Message } from '../../../models/message.model';
                     </span>
                     <span class="text-[11px] text-zinc-400 dark:text-zinc-500 shrink-0 flex items-center gap-1">
                       <ng-icon name="lucideClock" class="text-[10px]"></ng-icon>
-                      {{ msg.time }}
+                      {{ formatTime(msg.time) }}
                     </span>
                   </div>
 
-                  <p class="text-xs text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 transition-colors line-clamp-2 leading-relaxed break-words" dir="auto">
-                    {{ msg.text }}
+                  <p class="text-xs text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors line-clamp-2 leading-relaxed break-words" dir="auto">
+                    {{ getMessageText(msg) }}
                   </p>
                 </div>
 
@@ -184,10 +185,22 @@ export class SearchMessagesDialogComponent {
     const q = this.query().trim().toLowerCase();
     if (!q) return [];
 
-    return this.messages().filter(m =>
-      m.text?.toLowerCase().includes(q)
-    );
+    return this.messages().filter(m => {
+      const text = this.getMessageText(m).toLowerCase();
+      return text.includes(q);
+    });
   });
+
+  getMessageText(msg: Message): string {
+    // هماهنگ با فیلد content یا text (در صورت وجود پیام متنی یا فایل)
+    return (msg as any).content ?? (msg as any).text ?? '';
+  }
+
+  formatTime(time: string | Date | undefined): string {
+    if (!time) return '';
+    if (typeof time === 'string') return time;
+    return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
 
   resetSearch(): void {
     this.query.set('');
