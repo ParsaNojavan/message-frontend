@@ -1,22 +1,27 @@
-<div class="flex flex-col h-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 select-none transition-colors duration-200">
+<div
+    class="flex flex-col h-full w-full min-w-0 max-w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 select-none transition-colors duration-200 overflow-hidden relative">
 
     <!-- Top Header (Compact / Standard) -->
-    <header class="h-16 px-4 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between z-20 shrink-0">
+    <header
+        class="h-16 w-full px-3 sm:px-4 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between z-20 shrink-0">
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
             <button hlmBtn variant="ghost" size="sm" (click)="goBack()"
-                class="md:hidden size-9 p-0 rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 cursor-pointer">
+                class="md:hidden size-9 p-0 rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0 cursor-pointer">
                 <ng-icon name="lucideArrowLeft" class="text-lg"></ng-icon>
             </button>
             @if (selectedUser()) {
-            <app-user-profile-modal [user]="selectedUser()" [photos]="chatPhotos()" [videos]="chatVideos()"
-                [files]="chatFiles()" [groups]="commonGroups()" (chatClicked)="onDirectChatClicked()"
-                (notificationsToggled)="onNotificationsToggled($event)">
-            </app-user-profile-modal>
+            <div class="min-w-0 flex-1">
+                <app-user-profile-modal [user]="selectedUser()" [photos]="chatPhotos()" [videos]="chatVideos()"
+                    [files]="chatFiles()" [groups]="commonGroups()" (chatClicked)="onDirectChatClicked()"
+                    (notificationsToggled)="onNotificationsToggled($event)">
+                </app-user-profile-modal>
+            </div>
             }
         </div>
 
-        <div class="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+        <div class="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 shrink-0 ms-2">
+            <!-- Desktop-only Actions -->
             <button (click)="handleStartCall(
                     {
                         id: 'test-user-123',
@@ -24,9 +29,11 @@
                         avatarUrl: 'https://avatar.iran.liara.run/public/boy',
                     }, true
                 )"
-                class="inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-all shrink-0 cursor-pointer">
+                class="hidden md:inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shrink-0 cursor-pointer"
+                title="Video Call">
                 <ng-icon name="lucideVideo" class="text-lg"></ng-icon>
             </button>
+
             <button (click)="handleStartCall(
                     {
                         id: 'test-user-123',
@@ -34,119 +41,170 @@
                         avatarUrl: 'https://avatar.iran.liara.run/public/boy',
                     }, false
                 )"
-                class="inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-all shrink-0 cursor-pointer">
+                class="hidden md:inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shrink-0 cursor-pointer"
+                title="Voice Call">
                 <ng-icon name="lucidePhone" class="text-lg"></ng-icon>
             </button>
-            <app-search-messages-dialog [messages]="chatService.currentMessages()"
-                (messageSelected)="scrollToMessage($event)">
+
+            <!-- Search Dialog (Desktop Visible, Mobile triggered or hidden) -->
+            <app-search-messages-dialog #searchDialog class="hidden md:inline-flex"
+                [messages]="chatService.currentMessages()" (messageSelected)="scrollToMessage($event)">
             </app-search-messages-dialog>
-            <button
-                class="inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-all shrink-0 cursor-pointer">
+
+            <!-- Mobile-only 3-dots Menu -->
+            <button [hlmDropdownMenuTrigger]="mobileHeaderMenu"
+                class="md:hidden inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shrink-0 cursor-pointer">
                 <ng-icon name="lucideMoreVertical" class="text-lg"></ng-icon>
             </button>
+
+            <!-- Mobile Dropdown Template -->
+            <ng-template #mobileHeaderMenu>
+                <hlm-dropdown-menu
+                    class="w-48 p-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-2xl select-none flex flex-col gap-0.5">
+
+                    <button hlmDropdownMenuItem (click)="handleStartCall(
+                            {
+                                id: 'test-user-123',
+                                name: 'test-user',
+                                avatarUrl: 'https://avatar.iran.liara.run/public/boy',
+                            }, true
+                        )"
+                        class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200">
+                        <ng-icon name="lucideVideo" class="size-4.5 text-zinc-400 shrink-0" />
+                        <span class="text-sm font-medium">Video Call</span>
+                    </button>
+
+                    <button hlmDropdownMenuItem (click)="handleStartCall(
+                            {
+                                id: 'test-user-123',
+                                name: 'test-user',
+                                avatarUrl: 'https://avatar.iran.liara.run/public/boy',
+                            }, false
+                        )"
+                        class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200">
+                        <ng-icon name="lucidePhone" class="size-4.5 text-zinc-400 shrink-0" />
+                        <span class="text-sm font-medium">Voice Call</span>
+                    </button>
+
+                    <hlm-dropdown-menu-separator class="my-1 bg-zinc-200 dark:bg-zinc-800" />
+
+                    <!-- Search trigger for mobile -->
+                    <button hlmDropdownMenuItem (click)="openSearchDialog()"
+                        class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200">
+                        <ng-icon name="lucideSearch" class="size-4.5 text-zinc-400 shrink-0" />
+                        <span class="text-sm font-medium">Search Messages</span>
+                    </button>
+
+                </hlm-dropdown-menu>
+            </ng-template>
         </div>
     </header>
 
-    <!-- Pinned Message Bar (Compact) -->
+    <!-- Pinned Message Bar (Fixed & Fully responsive) -->
     <div
-        class="bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur px-4 py-1.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between cursor-pointer select-none shrink-0">
-        <div class="flex items-center gap-2 border-s-2 border-emerald-500 ps-2 overflow-hidden">
-            <div class="flex flex-col">
+        class="w-full bg-zinc-100/90 dark:bg-zinc-900/90 backdrop-blur px-3 sm:px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 cursor-pointer select-none shrink-0 min-w-0">
+        <div class="flex items-center gap-2 border-s-2 border-emerald-500 ps-2.5 overflow-hidden min-w-0 flex-1">
+            <div class="flex flex-col min-w-0 w-full">
                 <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Pinned Message</span>
-                <span class="text-xs text-zinc-600 dark:text-zinc-400 truncate max-w-xl">Pinned message preview text...</span>
+                <span class="text-xs text-zinc-600 dark:text-zinc-400 truncate block">Pinned message preview text...</span>
             </div>
         </div>
-        <ng-icon name="lucidePin" class="text-zinc-400 text-sm"></ng-icon>
+        <ng-icon name="lucidePin" class="text-zinc-400 text-sm shrink-0"></ng-icon>
     </div>
 
-    <!-- Message History Area (1.2x - 1.3x Enlarged Messages & Reactions) -->
-    <div class="relative flex-1 overflow-hidden">
+    <!-- Message History Area -->
+    <div class="relative flex-1 w-full min-w-0 overflow-hidden">
         <div #scrollContainer
-            class="h-full overflow-y-auto px-4 sm:px-8 py-5 space-y-3.5 bg-zinc-50 dark:bg-zinc-950 [scrollbar-width:thin]">
+            (scroll)="onScroll($event)"
+            class="h-full w-full overflow-y-auto overflow-x-hidden px-3 sm:px-6 py-4 space-y-3 bg-zinc-50 dark:bg-zinc-950 no-scrollbar">
 
             <!-- Sticky Date Pill -->
             <div class="flex justify-center my-2 sticky top-2 z-10 pointer-events-none">
-                <div class="bg-zinc-200/85 dark:bg-zinc-800/85 backdrop-blur text-zinc-700 dark:text-zinc-300 text-xs font-medium px-3.5 py-1 rounded-full shadow-xs border border-zinc-300/50 dark:border-zinc-700/50">
+                <div
+                    class="bg-zinc-200/85 dark:bg-zinc-800/85 backdrop-blur text-zinc-700 dark:text-zinc-300 text-xs font-medium px-3.5 py-1 rounded-full shadow-xs border border-zinc-300/50 dark:border-zinc-700/50">
                     {{ (chatService.currentMessages()[0]?.time | date:'d MMMM') || 'Today' }}
                 </div>
             </div>
 
             @for (msg of chatService.currentMessages(); track msg.id) {
-            <div [id]="'msg-' + msg.id"
-                class="flex items-end gap-2.5 group transition-colors duration-200"
-                [ngClass]="msg.isSender ? 'justify-end' : 'justify-start'"
+            <div [id]="'msg-' + msg.id" class="flex w-full min-w-0 items-end gap-2 group transition-colors duration-200"
+                [ngClass]="msg.isSender ? 'justify-end pl-6 sm:pl-16' : 'justify-start pr-6 sm:pr-16'"
                 [class.bg-emerald-500/10]="highlightedMessageId() === msg.id">
 
-                <!-- Avatar for Receiver (1.25x: size-10) -->
+                <!-- Avatar for Receiver -->
                 @if (!msg.isSender) {
-                <hlm-avatar class="size-10 shrink-0 mb-1">
-                    <img *ngIf="selectedUser()?.avatar" [src]="selectedUser()?.avatar" hlmAvatarImage [alt]="selectedUser()?.name" />
-                    <span hlmAvatarFallback class="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-sm">
+                <hlm-avatar class="size-8 sm:size-9 shrink-0 mb-0.5">
+                    <img *ngIf="selectedUser()?.avatar" [src]="selectedUser()?.avatar" hlmAvatarImage
+                        [alt]="selectedUser()?.name" />
+                    <span hlmAvatarFallback
+                        class="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs border border-emerald-200/50 dark:border-emerald-800/50">
                         {{ (selectedUser()?.name || '?').charAt(0).toUpperCase() }}
                     </span>
                 </hlm-avatar>
                 }
 
-                <!-- Bubble Container (1.25x: larger bubble & 15px font) -->
-                <div class="relative w-fit max-w-[85%] sm:max-w-[72%] select-text flex flex-col"
-                    [ngClass]="msg.isSender ? 'items-end' : 'items-start'">
+                <!-- Bubble Container -->
+                <div class="flex flex-col min-w-0 max-w-full" [ngClass]="msg.isSender ? 'items-end' : 'items-start'">
 
                     <div [hlmContextMenuTrigger]="msgMenu"
-                        class="px-4 py-2.5 rounded-2xl shadow-xs cursor-pointer transition-all duration-150 border text-[15px] leading-relaxed"
+                        class="relative px-3.5 py-2 rounded-2xl shadow-xs cursor-pointer transition-all duration-150 border text-[14px] leading-relaxed max-w-full"
                         [ngClass]="msg.isSender 
                             ? 'bg-emerald-600 text-white border-emerald-600 rounded-br-xs' 
                             : 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-800 rounded-bl-xs'">
 
                         <!-- Sender Name for Receiver -->
                         @if (!msg.isSender) {
-                        <div class="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 mb-1 select-none">
+                        <div
+                            class="text-[12px] font-bold text-emerald-600 dark:text-emerald-400 mb-0.5 select-none truncate">
                             {{ selectedUser()?.name || 'Contact' }}
                         </div>
                         }
 
-                        <!-- Message Text & Inline Time -->
-                        <div class="inline">
-                            <span class="whitespace-pre-wrap break-words" dir="auto">{{ msg.text }}</span>
+                        <!-- Message Text + Time Badge with Safe Wrapping -->
+                        <div class="w-full break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                            <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.text }}</span>
 
                             <!-- Meta Timestamp & Tick -->
-                            <span class="inline-flex items-center gap-1.5 align-baseline ps-3 text-xs select-none tabular-nums"
-                                [ngClass]="msg.isSender ? 'text-emerald-100' : 'text-zinc-400 dark:text-zinc-500'">
+                            <span
+                                class="float-end ms-3 mt-1.5 inline-flex items-center gap-1 text-[11px] select-none tabular-nums whitespace-nowrap leading-none"
+                                [ngClass]="msg.isSender ? 'text-emerald-100/90' : 'text-zinc-400 dark:text-zinc-500'">
                                 <span>{{ (msg.time) | date:'HH:mm' }}</span>
                                 @if (msg.isSender) {
-                                <ng-icon name="lucideCheckCheck" class="text-sm text-emerald-200" />
+                                <ng-icon name="lucideCheckCheck" class="text-xs text-emerald-200" />
                                 }
                             </span>
                         </div>
                     </div>
 
-                    <!-- Reaction Badges (1.25x: h-7, larger text & padding) -->
+                    <!-- Reaction Badges -->
                     @if (msg.reactions && msg.reactions.length > 0) {
-                    <div class="flex items-center gap-1.5 -mt-2.5 px-1.5 z-10"
-                        [ngClass]="msg.isSender ? 'justify-end pe-1.5' : 'justify-start ps-1.5'">
+                    <div class="flex flex-wrap items-center gap-1 -mt-2 px-1 z-10 max-w-full"
+                        [ngClass]="msg.isSender ? 'justify-end pe-1' : 'justify-start ps-1'">
                         @for (summary of getReactionSummary(msg); track summary.emoji) {
                         <button type="button" (click)="onBadgeClick(msg, summary.emoji, $event)"
                             [title]="summary.users.join(', ')"
-                            class="inline-flex items-center gap-1.5 h-7 px-2 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer">
-                            
-                            <div class="size-4 rounded-full overflow-hidden shrink-0">
+                            class="inline-flex items-center gap-1 h-5.5 sm:h-6 px-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer shrink-0">
+
+                            <div class="size-3.5 rounded-full overflow-hidden shrink-0">
                                 <img [src]="selectedUser()?.avatar || 'https://avatar.iran.liara.run/public/boy'"
                                     class="size-full object-cover" alt="reactor" />
                             </div>
 
                             @if (summary.count > 1) {
-                            <span class="bg-emerald-600 text-white rounded-full text-xs font-semibold px-1.5 min-w-[1.1rem] text-center leading-tight">
+                            <span
+                                class="bg-emerald-500 text-white rounded-full text-[10px] font-semibold px-1 min-w-[0.9rem] text-center leading-tight">
                                 {{ summary.count }}
                             </span>
                             }
 
-                            <span class="text-sm leading-none">{{ summary.emoji }}</span>
+                            <span class="text-xs leading-none">{{ summary.emoji }}</span>
                         </button>
                         }
                     </div>
                     }
                 </div>
 
-                <!-- Context Menu (Spacious 1.25x) -->
+                <!-- Context Menu -->
                 <ng-template #msgMenu>
                     <hlm-dropdown-menu
                         class="w-64 p-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-2xl select-none flex flex-col gap-1">
@@ -154,23 +212,28 @@
                         <!-- Reaction Details View -->
                         @if (showingReactionsForMsgId === msg.id) {
                         <div class="flex flex-col animate-in fade-in slide-in-from-right-2 duration-150">
-                            <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 mb-1">
+                            <div
+                                class="flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 mb-1">
                                 <button type="button" (click)="closeReactionsDetail($event)"
-                                    class="flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer">
+                                    class="flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer">
                                     <ng-icon name="lucideArrowLeft" class="size-4" />
                                     <span>Back</span>
                                 </button>
-                                <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Reactions ({{ msg.reactions?.length || 0 }})</span>
+                                <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100">Reactions ({{
+                                    msg.reactions?.length || 0 }})</span>
                             </div>
 
-                            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto px-1 py-1 [scrollbar-width:thin]">
+                            <div class="flex flex-col gap-1 max-h-60 overflow-y-auto px-1 py-1 no-scrollbar">
                                 @for (reaction of msg.reactions; track reaction.userId) {
-                                <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                                <div
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                                     <div class="flex items-center gap-2.5 truncate">
-                                        <div class="size-7 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                        <div
+                                            class="size-7 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0 border border-emerald-200/50 dark:border-emerald-800/50">
                                             {{ reaction.userName.charAt(0).toUpperCase() }}
                                         </div>
-                                        <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{{ reaction.userName }}</span>
+                                        <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">{{
+                                            reaction.userName }}</span>
                                     </div>
                                     <span class="text-base shrink-0">{{ reaction.emoji }}</span>
                                 </div>
@@ -224,7 +287,8 @@
                                     <span class="text-sm font-medium">Reactions</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                                    <span
+                                        class="text-xs px-2 py-0.5 rounded-full font-semibold bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                                         {{ msg.reactions.length }}
                                     </span>
                                     <ng-icon name="lucideChevronRight" class="size-4 text-zinc-400" />
@@ -232,13 +296,13 @@
                             </button>
                             }
 
-                            <!-- Quick Reactions Pill Row (1.25x: size-8) -->
+                            <!-- Quick Reactions Pill Row -->
                             <div class="p-1.5 bg-zinc-100/70 dark:bg-zinc-800/50 rounded-xl mt-1">
                                 <div (wheel)="onEmojiWheel($event)"
                                     class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                                     @for (emoji of quickReactions; track emoji) {
                                     <button type="button" (click)="onReaction(msg, emoji)"
-                                        [class.bg-emerald-600]="getUserReaction(msg) === emoji"
+                                        [class.bg-emerald-500]="getUserReaction(msg) === emoji"
                                         [class.text-white]="getUserReaction(msg) === emoji"
                                         [class.hover:bg-zinc-200]="getUserReaction(msg) !== emoji"
                                         [class.dark:hover:bg-zinc-700]="getUserReaction(msg) !== emoji"
@@ -264,18 +328,22 @@
             }
         </div>
 
-        <!-- Floating Scroll to Bottom Button (Standard size-9) -->
-        <button type="button" (click)="scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' })"
-            class="absolute bottom-4 right-4 size-9 rounded-full bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 text-emerald-600 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 shadow-md backdrop-blur flex items-center justify-center transition-all cursor-pointer z-10">
+        <!-- Floating Scroll to Bottom Button (نمایش فقط هنگام فاصله گرفتن از انتهای چت) -->
+        @if (showScrollBottom()) {
+        <button type="button"
+            (click)="scrollToBottom('smooth')"
+            class="absolute bottom-4 right-4 size-9 rounded-full bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 text-emerald-600 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 shadow-md backdrop-blur flex items-center justify-center transition-all cursor-pointer z-10 animate-in fade-in zoom-in-75 duration-200">
             <ng-icon name="lucideChevronDown" class="text-lg" />
         </button>
+        }
     </div>
 
-    <!-- Input Footer Area (Compact / Standard) -->
-    <footer class="p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 relative shrink-0">
+    <!-- Input Footer Area (Always Fixed Width & Fully In View) -->
+    <footer
+        class="w-full p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 relative shrink-0 min-w-0 z-20">
 
         <!-- Attachment Button & Popup Menu -->
-        <div class="relative flex items-center" id="attachment-wrapper">
+        <div class="relative flex items-center shrink-0" id="attachment-wrapper">
             <input #mediaInput type="file" accept="image/*,video/*" multiple class="hidden"
                 (change)="onFilePicked($event, 'media')" />
             <input #docInput type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar" multiple class="hidden"
@@ -286,7 +354,7 @@
                 (change)="onFilePicked($event, 'camera')" />
 
             <button type="button" (click)="toggleAttachmentMenu($event)"
-                class="inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all shrink-0 cursor-pointer"
+                class="inline-flex items-center justify-center size-9 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shrink-0 cursor-pointer"
                 [class.bg-zinc-100]="isAttachmentOpen()" [class.dark:bg-zinc-800]="isAttachmentOpen()">
                 <ng-icon name="lucidePaperclip" class="text-lg"></ng-icon>
             </button>
@@ -320,10 +388,11 @@
             }
         </div>
 
-        <!-- Input Box & Emoji Trigger (Fixed for RTL & LTR) -->
-        <div class="flex-1 relative flex items-center" id="emoji-wrapper">
-            <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..." dir="auto"
-                class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-3.5 pr-10 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none transition-all" />
+        <!-- Input Box & Emoji Trigger -->
+        <div class="flex-1 relative flex items-center min-w-0" id="emoji-wrapper">
+            <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..."
+                dir="auto"
+                class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-3.5 pr-10 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
 
             <button type="button" (click)="toggleEmojiMenu($event)"
                 class="absolute right-2.5 inset-y-0 my-auto inline-flex items-center justify-center size-7 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
@@ -334,12 +403,13 @@
             <!-- Emoji Picker Window -->
             @if (isEmojiOpen()) {
             <div
-                class="absolute bottom-full right-0 mb-2.5 w-[320px] sm:w-[360px] h-[390px] rounded-2xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                class="absolute bottom-full right-0 mb-2.5 w-[calc(100vw-1.5rem)] sm:w-[360px] max-w-[360px] h-[390px] rounded-2xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
                 <div class="flex-1 overflow-hidden relative">
                     <emoji-picker class="whatsapp-theme" (emoji-click)="onEmojiSelect($event)">
                     </emoji-picker>
                 </div>
-                <div class="h-10 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 px-3.5 flex items-center justify-between select-none">
+                <div
+                    class="h-10 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 px-3.5 flex items-center justify-between select-none">
                     <button type="button" (click)="activeTab = 'emoji'"
                         class="relative py-2 text-xs font-semibold uppercase tracking-wider"
                         [class.text-emerald-600]="activeTab === 'emoji'"
@@ -355,9 +425,9 @@
             }
         </div>
 
-        <!-- Send Button (Standard size-9) -->
+        <!-- Send Button -->
         <button (click)="send()" [disabled]="!messageText.trim()"
-            class="size-9 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer">
+            class="size-9 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer">
             <ng-icon name="lucideSend" class="text-sm"></ng-icon>
         </button>
     </footer>

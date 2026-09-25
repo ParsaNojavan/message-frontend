@@ -72,35 +72,35 @@ interface CropBox {
     template: `
     <hlm-dialog [state]="isOpen() ? 'open' : 'closed'" (closed)="onClose()">
       <hlm-dialog-content *hlmDialogPortal
-        class="w-[94vw] sm:max-w-lg bg-zinc-900 border-zinc-800 text-zinc-100 p-0 overflow-hidden shadow-2xl rounded-2xl [&>button.absolute]:hidden">
+        class="w-[94vw] sm:max-w-lg bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 p-0 overflow-hidden shadow-2xl rounded-2xl [&>button.absolute]:hidden">
 
         <!-- ================= CROP MODE VIEW ================= -->
         @if (isCropping()) {
           <!-- Crop Header Bar -->
-          <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900 select-none">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 select-none">
             <button type="button" (click)="cancelCrop()"
-              class="text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer p-1.5 rounded-lg hover:bg-zinc-800">
+              class="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800">
               <ng-icon name="lucideX" class="text-lg block"></ng-icon>
             </button>
 
-            <h3 class="text-sm font-semibold text-zinc-200">Crop & Rotate</h3>
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Crop & Rotate</h3>
 
             <div class="flex items-center gap-1.5">
               <!-- Rotate Button -->
               <button type="button" (click)="rotateClockwise()"
-                class="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" 
+                class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" 
                 title="Rotate 90°">
                 <ng-icon name="lucideRotateCw" class="text-lg block"></ng-icon>
               </button>
               <!-- Reset Crop -->
               <button type="button" (click)="resetCropBox()"
-                class="p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" 
+                class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" 
                 title="Reset">
                 <ng-icon name="lucideUndo2" class="text-lg block"></ng-icon>
               </button>
               <!-- Apply Crop -->
               <button type="button" (click)="applyCrop()"
-                class="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-md shadow-emerald-950">
+                class="flex items-center gap-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-md shadow-emerald-600/20">
                 <ng-icon name="lucideCheck" class="text-sm block"></ng-icon>
                 <span>Done</span>
               </button>
@@ -136,8 +136,8 @@ interface CropBox {
                     <div class="border-r border-b border-white/50"></div>
                     <div class="border-r border-b border-white/50"></div>
                     <div class="border-b border-white/50"></div>
-                    <div class="border-r border-white/50"></div>
-                    <div class="border-r border-white/50"></div>
+                    <div class="border-r border-b border-white/50"></div>
+                    <div class="border-r border-b border-white/50"></div>
                     <div></div>
                   </div>
 
@@ -155,19 +155,19 @@ interface CropBox {
         <!-- ================= NORMAL PREVIEW MODE ================= -->
         @else {
           <!-- Top Header Bar -->
-          <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 select-none">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 select-none">
             <button type="button" (click)="onClose()"
-              class="text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer p-1 rounded-lg">
+              class="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer p-1 rounded-lg">
               <ng-icon name="lucideX" class="text-xl block"></ng-icon>
             </button>
 
-            <h3 hlmDialogTitle class="text-sm font-semibold text-zinc-200">
+            <h3 hlmDialogTitle class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               {{ titleText() }}
             </h3>
 
-            <div class="flex items-center gap-1 text-zinc-400">
+            <div class="flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
               <!-- Add more files -->
-              <label class="p-1 rounded-lg hover:text-zinc-100 transition-colors cursor-pointer" title="Add file">
+              <label class="p-1 rounded-lg hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer" title="Add file">
                 <input type="file" multiple class="hidden" (change)="onAddMoreFiles($event)" [accept]="acceptedTypes()" />
                 <ng-icon name="lucidePlus" class="text-lg block"></ng-icon>
               </label>
@@ -175,7 +175,7 @@ interface CropBox {
               @if ((activeFileType() === 'media' || activeFileType() === 'camera') && isImage(selectedFiles()[selectedIndex()])) {
                 <button type="button" 
                   (click)="startCrop()"
-                  class="p-1 rounded-lg hover:text-emerald-400 hover:bg-zinc-800 transition-colors cursor-pointer" 
+                  class="p-1 rounded-lg hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" 
                   title="Crop & Edit">
                   <ng-icon name="lucideCrop" class="text-lg block"></ng-icon>
                 </button>
@@ -184,7 +184,7 @@ interface CropBox {
           </div>
 
           <!-- Main Preview Area -->
-          <div class="p-4 flex flex-col items-center justify-center bg-zinc-950/60 min-h-[220px] max-h-[340px] overflow-hidden relative">
+          <div class="p-4 flex flex-col items-center justify-center bg-zinc-100/60 dark:bg-zinc-950/60 min-h-[220px] max-h-[340px] overflow-hidden relative">
             
             <!-- 1. Image Preview -->
             @if (isImage(selectedFiles()[selectedIndex()])) {
@@ -203,13 +203,13 @@ interface CropBox {
 
             <!-- 3. Audio Preview -->
             @else if (isAudio(selectedFiles()[selectedIndex()])) {
-              <div class="flex flex-col items-center gap-3 p-6 bg-zinc-900/90 border border-zinc-800 rounded-2xl w-full max-w-sm">
-                <div class="size-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div class="flex flex-col items-center gap-3 p-6 bg-white/90 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-sm shadow-xs">
+                <div class="size-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <ng-icon name="lucideMusic" class="text-3xl"></ng-icon>
                 </div>
                 <div class="text-center w-full truncate">
-                  <p class="text-sm font-medium text-zinc-200 truncate">{{ selectedFiles()[selectedIndex()]?.name }}</p>
-                  <p class="text-xs text-zinc-500">{{ formatSize(selectedFiles()[selectedIndex()]?.size || 0) }}</p>
+                  <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ selectedFiles()[selectedIndex()]?.name }}</p>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ formatSize(selectedFiles()[selectedIndex()]?.size || 0) }}</p>
                 </div>
                 <audio [src]="getPreviewUrl(selectedFiles()[selectedIndex()])" controls class="w-full mt-2 h-10"></audio>
               </div>
@@ -217,13 +217,13 @@ interface CropBox {
 
             <!-- 4. Document / Generic File Preview -->
             @else {
-              <div class="flex items-center gap-4 p-5 bg-zinc-900/90 border border-zinc-800 rounded-2xl w-full max-w-md">
-                <div class="size-14 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+              <div class="flex items-center gap-4 p-5 bg-white/90 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md shadow-xs">
+                <div class="size-14 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                   <ng-icon name="lucideFileText" class="text-2xl"></ng-icon>
                 </div>
                 <div class="flex flex-col flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-zinc-200 truncate">{{ selectedFiles()[selectedIndex()]?.name }}</p>
-                  <p class="text-xs text-zinc-400 mt-0.5">{{ formatSize(selectedFiles()[selectedIndex()]?.size || 0) }}</p>
+                  <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">{{ selectedFiles()[selectedIndex()]?.name }}</p>
+                  <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{{ formatSize(selectedFiles()[selectedIndex()]?.size || 0) }}</p>
                 </div>
               </div>
             }
@@ -233,12 +233,14 @@ interface CropBox {
                 @for (file of selectedFiles(); track $index) {
                   <button type="button" (click)="selectedIndex.set($index)"
                     class="size-10 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer relative group"
-                    [class.border-emerald-500]="selectedIndex() === $index"
-                    [class.border-zinc-700]="selectedIndex() !== $index">
+                    [class.border-emerald-600]="selectedIndex() === $index"
+                    [class.dark:border-emerald-500]="selectedIndex() === $index"
+                    [class.border-zinc-300]="selectedIndex() !== $index"
+                    [class.dark:border-zinc-700]="selectedIndex() !== $index">
                     @if (isImage(file)) {
                       <img [src]="getPreviewUrl(file)" class="size-full object-cover" />
                     } @else {
-                      <div class="size-full bg-zinc-800 flex items-center justify-center text-zinc-400 text-xs font-bold uppercase">
+                      <div class="size-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 text-xs font-bold uppercase">
                         {{ file.name.split('.').pop() || 'file' }}
                       </div>
                     }
@@ -254,27 +256,27 @@ interface CropBox {
           <!-- Caption Input Box -->
           <div class="p-4 space-y-4">
             <div class="relative group">
-              <span class="absolute -top-2.5 left-4 px-1.5 bg-zinc-900 text-[11px] font-medium text-emerald-500 z-10 select-none">
+              <span class="absolute -top-2.5 left-4 px-1.5 bg-white dark:bg-zinc-900 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 z-10 select-none">
                 Caption
               </span>
-              <div class="flex items-center gap-2 border border-emerald-500/70 focus-within:border-emerald-500 rounded-xl px-3.5 py-2.5 bg-zinc-950/40 transition-colors">
-                <button type="button" class="text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+              <div class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-xl px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/40 transition-all">
+                <button type="button" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer">
                   <ng-icon name="lucideSmile" class="text-lg block"></ng-icon>
                 </button>
                 <input type="text" [(ngModel)]="caption" (keyup.enter)="onSend()"
                   placeholder="Add a caption..."
-                  class="flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 outline-none" />
+                  class="flex-1 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none" />
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-3 pt-1">
               <button type="button" (click)="onClose()"
-                class="flex-1 py-2.5 px-4 rounded-xl border border-zinc-700/80 hover:bg-zinc-800 text-zinc-300 font-medium text-sm transition-all duration-150 cursor-pointer text-center">
+                class="flex-1 py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-sm transition-all duration-150 cursor-pointer text-center">
                 Cancel
               </button>
               <button type="button" (click)="onSend()" [disabled]="selectedFiles().length === 0"
-                class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-sm transition-all duration-150 cursor-pointer shadow-lg shadow-emerald-950 text-center">
+                class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50 text-white font-medium text-sm transition-all duration-150 cursor-pointer shadow-md shadow-emerald-600/20 text-center">
                 Send
               </button>
             </div>

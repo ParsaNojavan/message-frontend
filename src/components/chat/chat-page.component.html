@@ -2,12 +2,13 @@
 
     <aside [class.hidden]="isChatOpen()"
         class="w-full md:w-80 lg:w-96 border-r border-border h-full flex-col shrink-0 md:flex">
-        <app-chat-sidebar class="h-full w-full"></app-chat-sidebar>
+        <app-chat-sidebar class="h-full w-full block"></app-chat-sidebar>
     </aside>
 
-    <main [class.hidden]="!isChatOpen()" class="flex-1 h-full flex-col md:flex">
+    <main [class.hidden]="!isChatOpen()" class="flex-1 min-w-0 max-w-full h-full flex flex-col overflow-hidden">
+
         @if (isChatOpen()) {
-        <app-chat-window class="h-full w-full"></app-chat-window>
+        <app-chat-window class="h-full w-full min-w-0 flex flex-col flex-1 overflow-hidden"></app-chat-window>
         } @else {
         <div class="hidden md:flex flex-1 flex-col items-center justify-center text-muted-foreground gap-2">
             <span class="text-sm">Select a conversation to start messaging</span>

@@ -42,7 +42,7 @@ import {
   lucideChevronDown
 } from '@ng-icons/lucide';
 
-// Spartan UI New Imports
+// Spartan UI Imports
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
@@ -115,11 +115,18 @@ export class ChatWindowComponent implements AfterViewChecked {
   private readonly route = inject(ActivatedRoute);
 
   messageText = '';
-  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('uploadModal') uploadModal!: MediaUploadModalComponent;
+  @ViewChild('searchDialog', { read: ElementRef }) searchDialogRef?: ElementRef<HTMLElement>;
+  @ViewChild(SearchMessagesDialogComponent) searchDialogComponent?: SearchMessagesDialogComponent;
 
   readonly currentUserId = 'current-user-id';
   readonly currentUserName = 'You';
+
+  // متغیرها و وضعیت‌های اسکرول
+  showScrollBottom = signal(false);
+  private isNearBottom = true;
+  private previousMessageCount = 0;
 
   isAttachmentOpen = signal(false);
   isEmojiOpen = signal(false);
@@ -154,7 +161,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     };
   });
 
-
   lazyUserId: string | null = null;
 
   constructor() {
@@ -163,7 +169,7 @@ export class ChatWindowComponent implements AfterViewChecked {
       const nameFromQuery = params.get('name');
       const contactState = history.state?.contact;
 
-      this.lazyUserId = userId; // 👈 آیدی کاربر را اینجا ذخیره کنید
+      this.lazyUserId = userId;
 
       if (userId && !this.chatService.activeConversationId()) {
         const contactName = contactState?.customFirstName
@@ -183,7 +189,7 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   chatPhotos = signal<string[]>([
     'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp',
-    'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D9%88%D8%A7%D9%84%D9%BE%DB%8C%D9%BE%D8%B1-%D8%A7%D8%B3%DA%A9%D9%84%D8%AA-%D9%81%D8%B1%D8%B4%D8%AA%D9%87.webp',
+    'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D9%88%D8%A7%D9%84%D9%8BE%DB%8C%D9%BE%D8%B1-%D8%A7%D8%B3%DA%A9%D9%84%D8%AA-%D9%81%D8%B1%D8%B4%D8%AA%D9%87.webp',
     'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D9%87%D9%86%D8%B1%DB%8C-%D9%88-%D8%B2%DB%8C%D8%A8%D8%A7.webp'
   ]);
 
@@ -203,6 +209,48 @@ export class ChatWindowComponent implements AfterViewChecked {
     { name: 'Family Group', membersCount: 5 },
     { name: 'Home Renovation', membersCount: 3 }
   ]);
+
+  // بررسی وضعیت اسکرول لیست پیام‌ها
+  onScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    const threshold = 150; // فاصله بر حسب پیکسل برای نمایش دکمه
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+
+    this.showScrollBottom.set(distanceFromBottom > threshold);
+    this.isNearBottom = distanceFromBottom <= threshold;
+  }
+
+  // اسکرول نرم به پایین صفحه
+  scrollToBottom(behavior: ScrollBehavior = 'smooth'): void {
+    if (this.scrollContainer?.nativeElement) {
+      this.scrollContainer.nativeElement.scrollTo({
+        top: this.scrollContainer.nativeElement.scrollHeight,
+        behavior
+      });
+      this.showScrollBottom.set(false);
+      this.isNearBottom = true;
+    }
+  }
+
+  // اسکرول هوشمند در صورت رسیدن پیام جدید و بودن در انتهای لیست
+  ngAfterViewChecked(): void {
+    const currentCount = this.chatService.currentMessages()?.length || 0;
+    if (currentCount !== this.previousMessageCount) {
+      this.previousMessageCount = currentCount;
+      if (this.isNearBottom) {
+        this.scrollToBottom('auto');
+      }
+    }
+  }
+
+  openSearchDialog(): void {
+    if (typeof (this.searchDialogComponent as any)?.open === 'function') {
+      (this.searchDialogComponent as any).open();
+      return;
+    }
+    const triggerBtn = this.searchDialogRef?.nativeElement.querySelector('button');
+    triggerBtn?.click();
+  }
 
   toggleAttachmentMenu(event: MouseEvent) {
     event.stopPropagation();
@@ -253,9 +301,8 @@ export class ChatWindowComponent implements AfterViewChecked {
       let currentRoomId = this.chatService.activeConversationId();
 
       if (!currentRoomId && this.lazyUserId) {
-        console.log(this.lazyUserId)
         const roomResponse: any = await firstValueFrom(this.chatService.startDirectChat(this.lazyUserId));
-        currentRoomId = roomResponse?.data?.roomId
+        currentRoomId = roomResponse?.data?.roomId;
 
         if (currentRoomId) {
           if (typeof this.chatService.setActiveConversation === 'function') {
@@ -272,10 +319,12 @@ export class ChatWindowComponent implements AfterViewChecked {
       }
 
       this.chatService.sendMessage(content);
-
       this.chatService.loadConversations();
-
       this.messageText = '';
+
+      // اسکرول قطعی به پایین پس از ارسال پیام خود کاربر
+      setTimeout(() => this.scrollToBottom('smooth'), 50);
+
       this.router.navigate([], {
         queryParams: { id: currentRoomId },
         replaceUrl: true
@@ -283,17 +332,6 @@ export class ChatWindowComponent implements AfterViewChecked {
 
     } catch (error) {
       console.error('Error starting chat: ', error);
-    }
-  }
-
-
-  ngAfterViewChecked() {
-    this.scrollToBottom();
-  }
-
-  private scrollToBottom(): void {
-    if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
     }
   }
 
