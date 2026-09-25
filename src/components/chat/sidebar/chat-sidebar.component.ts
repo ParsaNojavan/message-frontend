@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ChatService } from '../../../services/chat/chat.service';
 import { ThemeService } from '../../../services/theme/theme.service';
 import { ContactsService } from '../../../services/chat/contacts.service';
+import { AuthService } from '../../../services/auth/auth.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
   lucideSearch,
@@ -124,7 +125,35 @@ export class ChatSidebarComponent implements OnInit {
   readonly chatService = inject(ChatService);
   readonly themeService = inject(ThemeService);
   readonly contactsService = inject(ContactsService);
+  readonly authService = inject(AuthService);
   readonly router = inject(Router);
+
+  // پروفایل و وضعیت کاربر
+  readonly currentUser = this.authService.userProfile;
+
+  readonly userDisplayName = computed(() => {
+    const user = this.currentUser();
+    if (!user) return 'User';
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+    return fullName || user.username || user.phoneNumber || 'User';
+  });
+
+  readonly userInitials = computed(() => {
+    const user = this.currentUser();
+    if (!user) return 'U';
+
+    if (user.firstName || user.lastName) {
+      const f = user.firstName ? user.firstName.charAt(0) : '';
+      const l = user.lastName ? user.lastName.charAt(0) : '';
+      return `${f}${l}`.toUpperCase() || 'U';
+    }
+
+    if (user.username) {
+      return user.username.slice(0, 2).toUpperCase();
+    }
+
+    return 'U';
+  });
 
   currentView = signal<'chats' | 'search' | 'profile' | 'contacts'>('chats');
   searchQuery = signal<string>('');
@@ -149,6 +178,12 @@ export class ChatSidebarComponent implements OnInit {
     this.contactsService.getContacts().subscribe({
       error: (err) => console.error('Failed to load contacts:', err)
     });
+
+    if (!this.currentUser()) {
+      this.authService.getUserProfile().subscribe({
+        error: (err) => console.error('Failed to load profile in sidebar:', err)
+      });
+    }
   }
 
   filteredResults = computed(() => {
