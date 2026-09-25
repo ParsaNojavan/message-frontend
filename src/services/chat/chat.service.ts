@@ -2,15 +2,13 @@ import { Injectable, signal, computed, inject, DestroyRef, effect } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, firstValueFrom, map, Observable, of, switchMap, tap } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap } from 'rxjs';
 import { Conversation } from '../../models/conversation.model';
-import { Message } from '../../models/message.model';
 import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
 import { BackendMessagesResponse } from '../../models/dto/message.dto';
 import { RoomMuteResponse } from '../../models/dto/roomMute.dto';
-import { ContactsService } from './contacts.service';
-import { Contact } from '../../models/contact.model';
+import { Message, MessageMediaItem, MessageReaction, MessageReply } from '../../models/message.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +25,9 @@ export class ChatService {
   readonly conversations = signal<Conversation[]>([]);
   readonly activeConversationId = signal<string | number | null>(null);
   readonly messages = signal<Record<string | number, Message[]>>({});
+  
+  // نگه‌داشتن پیام والد در حال ریپلای
+  readonly replyingToMessage = signal<Message | null>(null);
 
   readonly activeConversation = computed(() => {
     const id = this.activeConversationId();
@@ -57,46 +58,117 @@ export class ChatService {
   }
 
   private handleConversationChange(id: string | number) {
-    this.socketService.emit('room.join', { roomId: id });
+    this.socketService.emit('room.join', { roomId: String(id) });
 
     this.conversations.update(chats =>
       chats.map(chat => String(chat.id) === String(id) ? { ...chat, unreadCount: 0 } : chat)
     );
+
+    // لغو ریپلای با سوئیچ چت
+    this.replyingToMessage.set(null);
 
     if (!this.messages()[id]) {
       this.loadMessages(id);
     }
   }
 
+  private normalizeReply(rawReply: any): MessageReply | null {
+    if (!rawReply) return null;
+    if (typeof rawReply === 'string' || typeof rawReply === 'number') {
+      return { id: rawReply, content: 'پیام ارجاع‌شده' };
+    }
+    return {
+      id: rawReply._id || rawReply.id,
+      content: rawReply.content || rawReply.message || '',
+      senderName: rawReply.senderName || (rawReply.senderId ? String(rawReply.senderId) : undefined),
+      senderId: rawReply.senderId ? String(rawReply.senderId) : undefined
+    };
+  }
+
   private initSocketListeners() {
+    // 1. دریافت پیام جدید (سوکت)
     this.socketService.listen<any>('room.message.new')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (incomingMsg) => {
           const currentUserId = this.authService.currentUser();
-
-          const roomId = incomingMsg.roomId;
+          const roomId = String(incomingMsg.roomId);
           const isSender = String(incomingMsg.senderId) === String(currentUserId);
+          const serverMsgId = incomingMsg._id || incomingMsg.id;
 
-          if (isSender) return;
-
-          const newMessage: Message = {
-            id: incomingMsg._id || Date.now(),
+          const formattedMessage: Message = {
+            id: serverMsgId,
             conversationId: roomId,
-            text: incomingMsg.content || incomingMsg.message,
+            content: incomingMsg.content || incomingMsg.message || '',
             time: incomingMsg.createdAt || new Date().toISOString(),
-            isSender: false,
-            status: 'sent'
+            isSender,
+            status: incomingMsg.isRead ? 'read' : 'sent',
+            replyTo: this.normalizeReply(incomingMsg.replyTo),
+            reactions: incomingMsg.reactions || [],
+            media: incomingMsg.media || [],
+            isForwarded: incomingMsg.isForwarded || false,
+            isEdited: incomingMsg.isEdited || false
           };
 
-          this.messages.update(allMessages => ({
-            ...allMessages,
-            [roomId]: [...(allMessages[roomId] || []), newMessage]
-          }));
+          this.messages.update(allMessages => {
+            const currentRoomMsgs = allMessages[roomId] || [];
 
-          this.updateConversationMetadata(roomId, newMessage.text, newMessage.time, false);
+            // اگر خود کاربر فرستاده بود، پیام optimistic موقت جایگزین شود
+            if (isSender) {
+              const tempIndex = currentRoomMsgs.findIndex(
+                m => m.status === 'sending' && m.content === formattedMessage.content
+              );
+
+              if (tempIndex !== -1) {
+                const updatedList = [...currentRoomMsgs];
+                updatedList[tempIndex] = formattedMessage;
+                return { ...allMessages, [roomId]: updatedList };
+              }
+            }
+
+            const exists = currentRoomMsgs.some(m => String(m.id) === String(serverMsgId));
+            if (!exists) {
+              return {
+                ...allMessages,
+                [roomId]: [...currentRoomMsgs, formattedMessage]
+              };
+            }
+
+            return allMessages;
+          });
+
+          this.updateConversationMetadata(roomId, formattedMessage.content, formattedMessage.time, isSender);
         },
         error: (err) => console.error('Socket newMessage error:', err)
+      });
+
+    // 2. به‌روزرسانی زنده ری‌اکشن‌ها
+    this.socketService.listen<{ messageId: string | number; roomId?: string | number; reactions: MessageReaction[] }>('room.message.reaction.updated')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ messageId, roomId, reactions }) => {
+          this.messages.update(allMessages => {
+            const targetRoomId = roomId ? String(roomId) : (this.activeConversationId() ? String(this.activeConversationId()) : null);
+            if (!targetRoomId || !allMessages[targetRoomId]) return allMessages;
+
+            const roomMsgs = allMessages[targetRoomId];
+            const targetIndex = roomMsgs.findIndex(m => String(m.id) === String(messageId));
+
+            if (targetIndex === -1) return allMessages;
+
+            const updatedMessages = [...roomMsgs];
+            updatedMessages[targetIndex] = {
+              ...updatedMessages[targetIndex],
+              reactions: reactions
+            };
+
+            return {
+              ...allMessages,
+              [targetRoomId]: updatedMessages
+            };
+          });
+        },
+        error: (err) => console.error('Socket reaction update error:', err)
       });
   }
 
@@ -132,7 +204,7 @@ export class ChatService {
               return { rooms, statusMap };
             }),
             catchError(err => {
-              console.warn('Error getting users precenses: ', err);
+              console.warn('Error getting users presences: ', err);
               return of({ rooms, statusMap: {} as Record<string, boolean> });
             })
           );
@@ -181,10 +253,15 @@ export class ChatService {
           return msgs.map(m => ({
             id: m._id,
             conversationId: m.roomId,
-            text: m.content,
+            content: m.content,
             time: m.createdAt,
             isSender: String(m.senderId) === String(currentUserId),
-            status: m.isRead ? 'read' : 'sent'
+            status: m.isRead ? 'read' : 'sent',
+            replyTo: this.normalizeReply((m as any).replyTo),
+            reactions: (m as any).reactions || [],
+            media: (m as any).media || [],
+            isForwarded: (m as any).isForwarded || false,
+            isEdited: (m as any).isEdited || false
           } as Message));
         })
       )
@@ -205,35 +282,81 @@ export class ChatService {
     this.activeConversationId.set(id);
   }
 
-  sendMessage(text: string) {
+  setReplyTo(message: Message | null) {
+    this.replyingToMessage.set(message);
+  }
+
+  cancelReply() {
+    this.replyingToMessage.set(null);
+  }
+
+  sendMessage(text: string, media?: MessageMediaItem[]) {
     const activeId = this.activeConversationId();
-    if (!activeId || !text.trim()) return;
+    if (!activeId || (!text.trim() && (!media || media.length === 0))) return;
 
     const trimmedText = text.trim();
     const nowIso = new Date().toISOString();
+    const currentReply = this.replyingToMessage();
 
-    const payload = {
-      roomId: activeId,
+    const payload: {
+      roomId: string;
+      message: string;
+      media?: MessageMediaItem[];
+      replyTo?: string;
+    } = {
+      roomId: String(activeId),
       message: trimmedText,
     };
 
-    const newMessage: Message = {
-      id: Date.now(),
+    if (media && media.length > 0) {
+      payload.media = media;
+    }
+
+    if (currentReply) {
+      payload.replyTo = String(currentReply.id);
+    }
+
+    // اضافه کردن اپتیمیستیک به لیست با وضعیت sending
+    const optimisticMessage: Message = {
+      id: `temp_${Date.now()}`,
       conversationId: activeId,
-      text: trimmedText,
+      content: trimmedText,
       time: nowIso,
       isSender: true,
-      status: 'sent'
+      status: 'sending',
+      replyTo: currentReply ? {
+        id: currentReply.id,
+        content: currentReply.content,
+        senderName: currentReply.isSender ? 'شما' : undefined
+      } : null,
+      reactions: [],
+      media: media || []
     };
 
     this.messages.update(all => ({
       ...all,
-      [activeId]: [...(all[activeId] || []), newMessage]
+      [activeId]: [...(all[activeId] || []), optimisticMessage]
     }));
 
     this.updateConversationMetadata(activeId, trimmedText, nowIso, true);
+    this.replyingToMessage.set(null);
 
     this.socketService.emit('room.message', payload);
+  }
+
+  sendReaction(messageId: string | number, emoji: string) {
+    const activeId = this.activeConversationId();
+    if (!activeId) return;
+
+    const payload = {
+      reaction: {
+        messageId: String(messageId),
+        roomId: String(activeId),
+        emoji: emoji
+      }
+    };
+
+    this.socketService.emit('room.message.react', payload);
   }
 
   muteRoom(roomId: string | number, durationMinutes: number) {
@@ -290,5 +413,4 @@ export class ChatService {
   startDirectChat(targetUserId: string): Observable<any> {
     return this.http.get<any>(`${this.API_URL}/user/contacts/${targetUserId}/room`);
   }
-
 }

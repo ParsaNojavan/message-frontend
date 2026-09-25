@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../services/chat/chat.service';
+import { AuthService } from '../../../services/auth/auth.service';
 import { provideIcons, NgIconComponent } from '@ng-icons/core';
 import 'emoji-picker-element';
 
@@ -24,7 +25,9 @@ import {
   lucideSend,
   lucidePaperclip,
   lucideSmile,
+  lucideCheck,
   lucideCheckCheck,
+  lucideClock,
   lucidePin,
   lucideReply,
   lucideCopy,
@@ -35,11 +38,11 @@ import {
   lucideFileText,
   lucideHeadphones,
   lucideCamera,
-  lucideDelete,
-  lucideUsers,
   lucideArrowLeft,
   lucideChevronRight,
-  lucideChevronDown
+  lucideChevronDown,
+  lucideMessageSquare,
+  lucideX
 } from '@ng-icons/lucide';
 
 // Spartan UI Imports
@@ -48,7 +51,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmContextMenuImports } from '@spartan-ng/helm/context-menu';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmBubbleImports } from '@spartan-ng/helm/bubble';
-import { Message, MessageReaction, ReactionSummaryItem } from '../../../models/message.model';
+
 import {
   UserProfileModalComponent,
   UserProfileData,
@@ -61,6 +64,7 @@ import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload
 import { CallPeer, CallService } from '../../../services/call/call.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { Message, MessageMediaItem, ReactionSummaryItem } from '../../../models/message.model';
 
 @Component({
   selector: 'app-chat-window',
@@ -88,7 +92,9 @@ import { firstValueFrom } from 'rxjs';
       lucideSend,
       lucidePaperclip,
       lucideSmile,
+      lucideCheck,
       lucideCheckCheck,
+      lucideClock,
       lucidePin,
       lucideReply,
       lucideCopy,
@@ -99,11 +105,11 @@ import { firstValueFrom } from 'rxjs';
       lucideFileText,
       lucideHeadphones,
       lucideCamera,
-      lucideDelete,
-      lucideUsers,
       lucideArrowLeft,
       lucideChevronRight,
-      lucideChevronDown
+      lucideChevronDown,
+      lucideMessageSquare,
+      lucideX
     })
   ],
   templateUrl: './chat-window.component.html'
@@ -111,6 +117,7 @@ import { firstValueFrom } from 'rxjs';
 export class ChatWindowComponent implements AfterViewChecked {
   readonly chatService = inject(ChatService);
   readonly callService = inject(CallService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -120,10 +127,12 @@ export class ChatWindowComponent implements AfterViewChecked {
   @ViewChild('searchDialog', { read: ElementRef }) searchDialogRef?: ElementRef<HTMLElement>;
   @ViewChild(SearchMessagesDialogComponent) searchDialogComponent?: SearchMessagesDialogComponent;
 
-  readonly currentUserId = 'current-user-id';
-  readonly currentUserName = 'You';
+  // شناسه کاربری لاگین‌شده
+  get currentUserId(): string {
+    return String(this.authService.currentUser() || 'current-user-id');
+  }
 
-  // متغیرها و وضعیت‌های اسکرول
+  // متغیرهای وضعیت اسکرول
   showScrollBottom = signal(false);
   private isNearBottom = true;
   private previousMessageCount = 0;
@@ -137,7 +146,6 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
 
-  // محاسبه وضعیت فعال بودن نوتیفیکیشن‌ها براساس mutedUntil روم جاری
   readonly isNotificationsEnabled = computed(() => {
     const active = this.chatService.activeConversation();
     if (!active?.mutedUntil) return true;
@@ -154,8 +162,8 @@ export class ChatWindowComponent implements AfterViewChecked {
       name: activeName,
       phone: activeChat?.phoneNumber || lazyUser?.phone,
       avatar: activeChat?.avatar || lazyUser?.avatar,
-      isOnline: false,
-      lastSeen: 'last seen Wednesday at 18:00',
+      isOnline: activeChat?.isOnline ?? false,
+      lastSeen: 'last seen recently',
       avatarColor: 'bg-emerald-600 text-white',
       notificationsEnabled: this.isNotificationsEnabled()
     };
@@ -188,39 +196,22 @@ export class ChatWindowComponent implements AfterViewChecked {
   }
 
   chatPhotos = signal<string[]>([
-    'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp',
-    'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D9%88%D8%A7%D9%84%D9%8BE%DB%8C%D9%BE%D8%B1-%D8%A7%D8%B3%DA%A9%D9%84%D8%AA-%D9%81%D8%B1%D8%B4%D8%AA%D9%87.webp',
-    'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D9%87%D9%86%D8%B1%DB%8C-%D9%88-%D8%B2%DB%8C%D8%A8%D8%A7.webp'
+    'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp'
   ]);
 
-  chatVideos = signal<VideoItem[]>([
-    {
-      thumbnail: 'https://shut.ir/storage/image/2026/9/11/%D8%B9%DA%A9%D8%B3-%D8%AA%D8%B1%D8%B3%D9%86%D8%A7%DA%A9-8k.webp',
-      duration: '0:42'
-    }
-  ]);
+  chatVideos = signal<VideoItem[]>([]);
+  chatFiles = signal<FileItem[]>([]);
+  commonGroups = signal<GroupItem[]>([]);
 
-  chatFiles = signal<FileItem[]>([
-    { name: 'Family_Recipe.pdf', size: '1.2 MB' },
-    { name: 'Invoice_Sep2026.pdf', size: '480 KB' }
-  ]);
-
-  commonGroups = signal<GroupItem[]>([
-    { name: 'Family Group', membersCount: 5 },
-    { name: 'Home Renovation', membersCount: 3 }
-  ]);
-
-  // بررسی وضعیت اسکرول لیست پیام‌ها
   onScroll(event: Event): void {
     const el = event.target as HTMLElement;
-    const threshold = 150; // فاصله بر حسب پیکسل برای نمایش دکمه
+    const threshold = 150;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
 
     this.showScrollBottom.set(distanceFromBottom > threshold);
     this.isNearBottom = distanceFromBottom <= threshold;
   }
 
-  // اسکرول نرم به پایین صفحه
   scrollToBottom(behavior: ScrollBehavior = 'smooth'): void {
     if (this.scrollContainer?.nativeElement) {
       this.scrollContainer.nativeElement.scrollTo({
@@ -232,7 +223,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  // اسکرول هوشمند در صورت رسیدن پیام جدید و بودن در انتهای لیست
   ngAfterViewChecked(): void {
     const currentCount = this.chatService.currentMessages()?.length || 0;
     if (currentCount !== this.previousMessageCount) {
@@ -271,13 +261,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  deleteLastChar() {
-    if (!this.messageText) return;
-    const chars = Array.from(this.messageText);
-    chars.pop();
-    this.messageText = chars.join('');
-  }
-
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -287,10 +270,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     if (!target.closest('#emoji-wrapper')) {
       this.isEmojiOpen.set(false);
     }
-  }
-
-  onAttachmentSelect(type: string) {
-    this.isAttachmentOpen.set(false);
   }
 
   async send() {
@@ -305,11 +284,7 @@ export class ChatWindowComponent implements AfterViewChecked {
         currentRoomId = roomResponse?.data?.roomId;
 
         if (currentRoomId) {
-          if (typeof this.chatService.setActiveConversation === 'function') {
-            this.chatService.setActiveConversation(currentRoomId);
-          } else {
-            this.chatService.activeConversationId.set(currentRoomId);
-          }
+          this.chatService.setActiveConversation(currentRoomId);
         }
       }
 
@@ -319,10 +294,8 @@ export class ChatWindowComponent implements AfterViewChecked {
       }
 
       this.chatService.sendMessage(content);
-      this.chatService.loadConversations();
       this.messageText = '';
 
-      // اسکرول قطعی به پایین پس از ارسال پیام خود کاربر
       setTimeout(() => this.scrollToBottom('smooth'), 50);
 
       this.router.navigate([], {
@@ -335,66 +308,49 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  onReply(msg: any) {
-    console.log('Reply to message:', msg);
+  onReply(msg: Message) {
+    this.chatService.setReplyTo(msg);
   }
 
-  onCopy(msg: any) {
-    const contentToCopy = msg.text || msg.content;
-    if (contentToCopy) {
-      navigator.clipboard.writeText(contentToCopy);
+  scrollToReplyMessage(replyMsgId: string | number, event: MouseEvent) {
+    event.stopPropagation();
+    const targetElement = document.getElementById(`msg-${replyMsgId}`);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.highlightedMessageId.set(replyMsgId);
+      setTimeout(() => this.highlightedMessageId.set(null), 1500);
     }
   }
 
-  onForward(msg: any) {
+  onCopy(msg: Message) {
+    if (msg.content) {
+      navigator.clipboard.writeText(msg.content);
+    }
+  }
+
+  onForward(msg: Message) {
     console.log('Forward message:', msg);
   }
 
-  onPin(msg: any) {
+  onPin(msg: Message) {
     console.log('Pin message:', msg);
   }
 
-  onEdit(msg: any) {
-    console.log('Edit message:', msg);
-  }
-
-  onDelete(msg: any) {
+  onDelete(msg: Message) {
     console.log('Delete message:', msg);
   }
 
-  onReaction(msg: any, emoji: string) {
-    if (!msg.reactions) {
-      msg.reactions = [];
-    }
-
-    const existingIndex = msg.reactions.findIndex((r: any) =>
-      typeof r === 'object' ? r.userId === this.currentUserId : false
-    );
-
-    if (existingIndex > -1) {
-      if (msg.reactions[existingIndex].emoji === emoji) {
-        msg.reactions.splice(existingIndex, 1);
-      } else {
-        msg.reactions[existingIndex].emoji = emoji;
-      }
-    } else {
-      msg.reactions.push({
-        userId: this.currentUserId,
-        userName: this.currentUserName,
-        emoji: emoji
-      });
-    }
+  onReaction(msg: Message, emoji: string) {
+    this.chatService.sendReaction(msg.id, emoji);
   }
 
-  getUserReaction(msg: any): string | null {
+  getUserReaction(msg: Message): string | null {
     if (!msg.reactions || !Array.isArray(msg.reactions)) return null;
-    const found = msg.reactions.find((r: any) =>
-      typeof r === 'object' ? r.userId === this.currentUserId : false
-    );
+    const found = msg.reactions.find(r => String(r.userId) === this.currentUserId);
     return found ? found.emoji : null;
   }
 
-  getReactionSummary(msg: any): ReactionSummaryItem[] {
+  getReactionSummary(msg: Message): ReactionSummaryItem[] {
     if (!msg.reactions || !Array.isArray(msg.reactions) || msg.reactions.length === 0) {
       return [];
     }
@@ -402,9 +358,9 @@ export class ChatWindowComponent implements AfterViewChecked {
     const summaryMap = new Map<string, { count: number; users: string[]; hasCurrentUser: boolean }>();
 
     for (const item of msg.reactions) {
-      const emoji = typeof item === 'object' ? item.emoji : item;
-      const userName = typeof item === 'object' ? item.userName : 'Unknown';
-      const isCurrent = typeof item === 'object' ? item.userId === this.currentUserId : false;
+      const emoji = item.emoji;
+      const userName = item.userName || 'کاربر';
+      const isCurrent = String(item.userId) === this.currentUserId;
 
       const current = summaryMap.get(emoji) || { count: 0, users: [], hasCurrentUser: false };
       current.count++;
@@ -419,7 +375,7 @@ export class ChatWindowComponent implements AfterViewChecked {
     }));
   }
 
-  onBadgeClick(msg: any, emoji: string, event: MouseEvent) {
+  onBadgeClick(msg: Message, emoji: string, event: MouseEvent) {
     event.stopPropagation();
     this.onReaction(msg, emoji);
   }
@@ -453,11 +409,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     console.log('Direct chat initiated from profile dialog');
   }
 
-  getReactionsList(msg: any): MessageReaction[] {
-    if (!msg?.reactions) return [];
-    return Array.isArray(msg.reactions) ? msg.reactions : [msg.reactions];
-  }
-
   openReactionsDetail(msgId: string | number, event: MouseEvent): void {
     event.stopPropagation();
     event.preventDefault();
@@ -477,7 +428,6 @@ export class ChatWindowComponent implements AfterViewChecked {
       const element = document.getElementById(`msg-${message.id}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
         this.highlightedMessageId.set(message.id);
         setTimeout(() => this.highlightedMessageId.set(null), 1500);
       }
@@ -492,8 +442,24 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
-  handleFileSend(payload: UploadPayload) {
-    console.log('Sending payload:', payload);
+  async handleFileSend(payload: UploadPayload) {
+    const { files, caption, type } = payload;
+    if (!files || files.length === 0) return;
+
+    try {
+      // ایجاد فرمت MessageMediaItem متناسب با ساختار سرور
+      const mediaList: MessageMediaItem[] = files.map(file => ({
+        mediaId: crypto.randomUUID(),
+        url: URL.createObjectURL(file), // در صورت داشتن سرویس آپلود، URL سرور جایگزین می‌شود
+        type: file.type || (type === 'document' ? 'application/octet-stream' : 'application/file')
+      }));
+
+      this.chatService.sendMessage(caption || '', mediaList);
+      setTimeout(() => this.scrollToBottom('smooth'), 60);
+
+    } catch (err) {
+      console.error('Error sending media files:', err);
+    }
   }
 
   async handleStartCall(peer: CallPeer, isVideo: boolean) {
