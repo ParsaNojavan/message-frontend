@@ -33,24 +33,18 @@ export interface VerifyOtpResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private socketService = inject(SocketService);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
+  private readonly socketService = inject(SocketService);
+  private readonly router = inject(Router);
   private readonly apiUrl = 'http://localhost:3000/user';
 
-  // ذخیره شناسه یکتای کاربر جاری (sub درون JWT)
   currentUser = signal<string | null>(null);
-
-  // مشخصات کامل پروفایل کاربر برای استفاده در سایدبار و تنظیمات
   userProfile = signal<UserProfile | null>(null);
 
   constructor() {
     this.restoreSession();
   }
 
-  /**
-   * بازگردانی سشن کاربر از روی کوکی access_token هنگام رفرش صفحه
-   */
   private async restoreSession(): Promise<void> {
     try {
       const cookie = await cookieStore.get('access_token');
@@ -61,7 +55,6 @@ export class AuthService {
         this.currentUser.set(userId);
         this.socketService.connect(token);
 
-        // واکشی پروفایل بعد از اطمینان از وجود توکن
         this.getUserProfile().subscribe({
           error: (err) => console.error('Failed to load profile on session restore:', err)
         });
@@ -71,9 +64,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * لاگین و شروع کار بعد از تایید کد OTP
-   */
   async handleAuthentication(token: string, refreshToken: string): Promise<void> {
     await cookieStore.set('access_token', token);
     await cookieStore.set('refresh_token', refreshToken);
@@ -81,25 +71,19 @@ export class AuthService {
     const userId = this.decodeToken(token);
     this.currentUser.set(userId);
 
-    // اتصال وب‌سوکت
     this.socketService.connect(token);
 
-    // واکشی پروفایل تازه وارد شده
     this.getUserProfile(true).subscribe({
       error: (err) => console.error('Failed to load profile after auth:', err)
     });
   }
 
-  /**
-   * نام مستعار برای سازگاری در صورت نیاز
-   */
+
   async loginWithToken(token: string, refreshToken: string): Promise<void> {
     return this.handleAuthentication(token, refreshToken);
   }
 
-  /**
-   * ارسال کد تایید یکبارمصرف به شماره تلفن
-   */
+
   sendVerificationCode(phone: string): Observable<SendOtpResponse> {
     const cleanPhone = phone.trim().replace(/^0/, '');
     const fullPhone = `+98${cleanPhone}`;
@@ -108,9 +92,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * تایید کد OTP دریافت شده
-   */
   verifyOtp(phone: string, code: string): Observable<VerifyOtpResponse> {
     const cleanPhone = phone.trim().replace(/^0/, '');
     const fullPhone = phone.startsWith('+') ? phone : `+98${cleanPhone}`;
@@ -120,15 +101,14 @@ export class AuthService {
     });
   }
 
-  /**
-   * دریافت پروفایل کاربر (GET /user/user-profile)
-   */
   getUserProfile(forceRefresh = false): Observable<UserProfile> {
     if (!forceRefresh && this.userProfile()) {
       return of(this.userProfile()!);
     }
 
-    return this.http.get<{ data: UserProfile } | UserProfile>(`${this.apiUrl}/user-profile`).pipe(
+    return this.http.get<{ data: UserProfile } | UserProfile>(`${this.apiUrl}/user-profile`, {
+      withCredentials: true
+    }).pipe(
       map((response: any) => response.data || response),
       tap((profile: UserProfile) => {
         this.userProfile.set(profile);
@@ -136,23 +116,18 @@ export class AuthService {
     );
   }
 
-  /**
-   * ویرایش مشخصات پروفایل (PATCH /user/user-update)
-   */
   updateProfile(updateData: Partial<UserProfile>): Observable<UserProfile> {
-    return this.http.patch<{ data: UserProfile } | UserProfile>(`${this.apiUrl}/user-update`, updateData).pipe(
+    return this.http.patch<{ data: UserProfile } | UserProfile>(`${this.apiUrl}/user-update`, updateData, {
+      withCredentials: true
+    }).pipe(
       map((response: any) => response.data || response),
       tap((updated: UserProfile) => {
-        // ادغام با وضعیت قبلی
         const current = this.userProfile() || {};
         this.userProfile.set({ ...current, ...updated });
       })
     );
   }
 
-  /**
-   * دریافت مجدد توکن با استفاده از Refresh Token
-   */
   refreshToken(): Observable<RefreshResponse> {
     return from(cookieStore.get('refresh_token')).pipe(
       switchMap((cookie) => {
@@ -176,9 +151,6 @@ export class AuthService {
     );
   }
 
-  /**
-   * رمزگشایی کلاینتی توکن JWT برای استخراج Payload (sub)
-   */
   private decodeToken(token: string): string | null {
     try {
       const payloadBase64 = token.split('.')[1];
@@ -200,9 +172,6 @@ export class AuthService {
     }
   }
 
-  /**
-   * خروج از حساب کاربری
-   */
   async logout(): Promise<void> {
     this.socketService.disconnect();
     this.currentUser.set(null);

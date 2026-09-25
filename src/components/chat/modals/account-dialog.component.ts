@@ -21,7 +21,11 @@ import {
   lucideCheck,
   lucideLoader2
 } from '@ng-icons/lucide';
+import { switchMap } from 'rxjs';
 import { AuthService } from '../../../services/auth/auth.service';
+import { MediaService } from '../../../services/media/media.service';
+
+const MEDIA_BASE_URL = 'http://localhost:3001';
 
 @Component({
   selector: 'app-account-settings',
@@ -83,12 +87,21 @@ import { AuthService } from '../../../services/auth/auth.service';
         <!-- User Profile Banner / Avatar Section -->
         <div class="relative px-5 pt-4 pb-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <div class="flex items-center gap-3.5">
-            <hlm-avatar class="size-14 rounded-full ring-2 ring-zinc-200 dark:ring-zinc-800 shadow-xs">
-              <img *ngIf="avatarPreview() || user()?.avatar" hlmAvatarImage [src]="avatarPreview() || user()?.avatar" [alt]="displayName()" />
-              <span hlmAvatarFallback class="font-bold text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
+            <!-- Avatar Container -->
+            <div class="size-14 rounded-full ring-2 ring-zinc-200 dark:ring-zinc-800 shadow-xs overflow-hidden flex items-center justify-center bg-emerald-50 dark:bg-emerald-950 shrink-0">
+              <img 
+                *ngIf="currentAvatarUrl()" 
+                [src]="currentAvatarUrl()" 
+                [alt]="displayName()" 
+                class="size-full object-cover rounded-full"
+              />
+              <span 
+                *ngIf="!currentAvatarUrl()" 
+                class="font-bold text-sm text-emerald-700 dark:text-emerald-300">
                 {{ initials() }}
               </span>
-            </hlm-avatar>
+            </div>
+
             <div class="flex flex-col">
               <span class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
                 {{ displayName() }}
@@ -98,7 +111,7 @@ import { AuthService } from '../../../services/auth/auth.service';
           </div>
 
           <!-- Hidden File Input for Avatar Upload -->
-          <input #fileInput type="file" accept="image/*" class="hidden" (change)="onAvatarSelected($event)" />
+          <input #fileInput type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onAvatarSelected($event)" />
 
           <!-- Change Avatar Button -->
           <button 
@@ -233,10 +246,10 @@ import { AuthService } from '../../../services/auth/auth.service';
 })
 export class AccountSettingsComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly mediaService = inject(MediaService);
 
   readonly user = this.authService.userProfile;
 
-  // وضعیت ویرایش و فرم
   isEditing = signal<boolean>(false);
   saving = signal<boolean>(false);
   errorMessage = signal<string>('');
@@ -246,7 +259,7 @@ export class AccountSettingsComponent implements OnInit {
   editLastName: string = '';
   editUsername: string = '';
   editBio: string = '';
-  selectedAvatarData: string | null = null;
+  selectedFile: File | null = null;
 
   readonly displayName = computed(() => {
     const profile = this.user();
@@ -270,6 +283,33 @@ export class AccountSettingsComponent implements OnInit {
     }
 
     return 'U';
+  });
+
+  readonly currentAvatarUrl = computed(() => {
+    const preview = this.avatarPreview();
+    if (preview) return preview;
+
+    const profile = this.user() as any;
+    if (!profile) return null;
+
+    const rawPhoto = profile.photoUrl ?? profile.avatar ?? profile.avatarUrl;
+    if (!rawPhoto) return null;
+
+    let rawUrl: string = '';
+    if (typeof rawPhoto === 'object') {
+      rawUrl = rawPhoto.url || rawPhoto.filePath || rawPhoto.path || '';
+    } else {
+      rawUrl = String(rawPhoto).trim();
+    }
+
+    if (!rawUrl || rawUrl === 'null' || rawUrl === 'undefined') return null;
+
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+
+    const cleanPath = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+    return `${MEDIA_BASE_URL}${cleanPath}`;
   });
 
   ngOnInit(): void {
@@ -301,7 +341,7 @@ export class AccountSettingsComponent implements OnInit {
   cancelEditing(): void {
     this.isEditing.set(false);
     this.avatarPreview.set(null);
-    this.selectedAvatarData = null;
+    this.selectedFile = null;
     this.errorMessage.set('');
   }
 
@@ -310,19 +350,28 @@ export class AccountSettingsComponent implements OnInit {
     if (input.files && input.files[0]) {
       const file = input.files[0];
 
-      // محدودیت حجم (مثلاً حداکثر 3 مگابایت)
-      if (file.size > 3 * 1024 * 1024) {
-        this.errorMessage.set('Image size should be less than 3MB');
+      if (!file.type.match(/\/(jpg|jpeg|png|webp)$/)) {
+        this.errorMessage.set('Format not supported. Please select JPG, PNG, or WEBP.');
         return;
       }
 
+      if (file.size > 10 * 1024 * 1024) {
+        this.errorMessage.set('Image size should be less than 10MB');
+        return;
+      }
+
+      this.selectedFile = file;
+
       const reader = new FileReader();
       reader.onload = () => {
-        const base64 = reader.result as string;
-        this.avatarPreview.set(base64);
-        this.selectedAvatarData = base64;
+        this.avatarPreview.set(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      if (!this.isEditing()) {
+        this.populateForm();
+        this.isEditing.set(true);
+      }
     }
   }
 
@@ -333,20 +382,32 @@ export class AccountSettingsComponent implements OnInit {
     const payload: Record<string, any> = {
       firstName: this.editFirstName.trim(),
       lastName: this.editLastName.trim(),
-      username: this.editUsername.trim().replace(/^@/, ''), // حذف @ در صورت درج کاربر
+      username: this.editUsername.trim().replace(/^@/, ''),
       bio: this.editBio.trim()
     };
 
-    if (this.selectedAvatarData) {
-      payload['avatar'] = this.selectedAvatarData;
-    }
+    const updateFlow$ = this.selectedFile
+      ? this.mediaService.upload(this.selectedFile).pipe(
+          switchMap((uploadRes: any) => {
+            const rawUrl = uploadRes?.data?.url || uploadRes?.url || '';
 
-    this.authService.updateProfile(payload).subscribe({
+            const fullPhotoUrl = rawUrl.startsWith('http')
+              ? rawUrl
+              : `${MEDIA_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+
+            payload['photoUrl'] = fullPhotoUrl;
+            return this.authService.updateProfile(payload);
+          })
+        )
+      : this.authService.updateProfile(payload);
+
+    updateFlow$.subscribe({
       next: () => {
         this.saving.set(false);
         this.isEditing.set(false);
         this.avatarPreview.set(null);
-        this.selectedAvatarData = null;
+        this.selectedFile = null;
+        this.authService.getUserProfile().subscribe();
       },
       error: (err) => {
         this.saving.set(false);
