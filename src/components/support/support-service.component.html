@@ -10,11 +10,11 @@
             <!-- Header Icon & Title -->
             <div class="flex items-center gap-3.5 mb-5">
                 <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
                     <ng-icon name="lucideKey" class="text-2xl"></ng-icon>
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Support API Key</h2>
+                    <h2 class="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Support API Key</h2>
                     <p class="text-xs text-zinc-500 dark:text-zinc-400">Generate credentials for your live chat
                         integration</p>
                 </div>
@@ -28,7 +28,7 @@
             </p>
 
             <button hlmBtn (click)="generateApiKey()" [disabled]="isGeneratingKey()"
-                class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs font-medium transition-all shadow-sm flex items-center justify-center">
+                class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs font-medium transition-all shadow-sm flex items-center justify-center cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:pointer-events-none">
                 @if (isGeneratingKey()) {
                 <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
@@ -55,11 +55,11 @@
                         Key</label>
                     <div class="relative flex items-center">
                         <input hlmInput readonly [value]="key"
-                            class="w-full text-xs font-mono h-11 pr-24 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-emerald-600 dark:text-emerald-400 rounded-lg select-all" />
+                            class="w-full text-xs font-mono h-11 pr-24 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-emerald-600 dark:text-emerald-400 rounded-lg select-all focus:border-emerald-500 focus-visible:ring-emerald-500/20" />
 
                         <button hlmBtn size="sm" variant="outline" (click)="copyApiKey()"
-                            class="absolute right-1.5 h-8 px-2.5 text-xs gap-1.5 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 inline-flex items-center">
-                            <ng-icon [name]="copiedKey() ? 'lucideCheck' : 'lucideCopy'" class="text-xs"></ng-icon>
+                            class="absolute right-1.5 h-8 px-2.5 text-xs gap-1.5 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 inline-flex items-center cursor-pointer transition-colors">
+                            <ng-icon [name]="copiedKey() ? 'lucideCheck' : 'lucideCopy'" class="text-xs" [class.text-emerald-600]="copiedKey()" [class.dark:text-emerald-400]="copiedKey()"></ng-icon>
                             {{ copiedKey() ? 'Copied' : 'Copy' }}
                         </button>
                     </div>
@@ -67,7 +67,7 @@
 
                 <!-- Spartan Alert Component -->
                 <div hlmAlert
-                    class="border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 rounded-lg p-3.5 flex gap-3">
+                    class="border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 rounded-lg p-3.5 flex gap-3 dark:border-amber-500/20">
                     <ng-icon name="lucideAlertTriangle"
                         class="text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5"></ng-icon>
                     <div>
@@ -84,7 +84,7 @@
 
                 <!-- Confirmation / Done Button -->
                 <button hlmBtn (click)="confirmAndProceed()"
-                    class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-all shadow-sm mt-2">
+                    class="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-all shadow-sm mt-2 cursor-pointer active:scale-[0.99]">
                     I have saved my API Key & Continue
                 </button>
             </div>
@@ -105,7 +105,7 @@
             <img src="/logo.png" alt="LinkChain" class="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10" />
 
             <div class="min-w-0">
-                <h1 class="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-sm">
+                <h1 class="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-sm">
                     LinkChain Support Hub
                 </h1>
 
@@ -119,11 +119,11 @@
 
             <div
                 class="hidden items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs dark:border-zinc-800 dark:bg-zinc-950 lg:flex">
-                <span class="select-none text-[11px] text-zinc-400">
+                <span class="select-none text-[11px] text-zinc-400 dark:text-zinc-500">
                     API Key:
                 </span>
 
-                <span class="font-medium text-zinc-600 dark:text-zinc-400">
+                <span class="font-medium text-zinc-700 dark:text-zinc-300">
                     live_pk_••••••••••••
                 </span>
 
@@ -134,7 +134,7 @@
             </div>
 
             <button hlmBtn size="sm" type="button" (click)="isEmbedDialogOpen.set(true)"
-                class="inline-flex h-9 items-center gap-1.5 bg-emerald-600 px-3 text-xs text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500">
+                class="inline-flex h-9 items-center gap-1.5 bg-emerald-600 px-3 text-xs text-white shadow-sm hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 cursor-pointer active:scale-95 transition-all">
                 <ng-icon name="lucideCode2" class="shrink-0 text-sm"></ng-icon>
 
                 <span class="hidden sm:inline">Integration Code</span>
@@ -152,26 +152,28 @@
             [class.flex]="!isMobileChatOpen()">
 
             <!-- Search Bar with Spartan Input -->
-            <div class="p-3.5 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div class="p-3.5 border-b border-zinc-200/70 dark:border-zinc-800/70">
                 <div class="relative">
                     <ng-icon name="lucideSearch"
-                        class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none"></ng-icon>
+                        class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 text-sm pointer-events-none"></ng-icon>
                     <input hlmInput type="text" placeholder="Search visitor, message, or path..."
                         [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
-                        class="pl-9 text-xs h-9 w-full bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 rounded-lg" />
+                        class="pl-9 text-xs h-9 w-full bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-emerald-500 focus-visible:ring-emerald-500/20 rounded-lg" />
                 </div>
             </div>
 
             <!-- Rooms Scroll Container -->
             <div
-                class="min-h-0 flex-1 divide-y divide-zinc-100 overflow-y-auto overscroll-contain dark:divide-zinc-800/50">
+                class="min-h-0 flex-1 divide-y divide-zinc-200/70 overflow-y-auto overscroll-contain dark:divide-zinc-800/70 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
                 @for (room of filteredRooms(); track room.id) {
-                <div (click)="selectRoom(room.id)" [class.bg-emerald-500/5]="activeRoomId() === room.id"
+                <div (click)="selectRoom(room.id)" 
+                    [class.bg-emerald-500/5]="activeRoomId() === room.id"
                     [class.dark:bg-emerald-500/10]="activeRoomId() === room.id"
                     [class.border-l-2]="activeRoomId() === room.id"
-                    [class.border-l-emerald-500]="activeRoomId() === room.id"
-                    class="group relative flex flex-col gap-1.5 p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+                    [class.border-l-emerald-600]="activeRoomId() === room.id"
+                    [class.dark:border-l-emerald-500]="activeRoomId() === room.id"
+                    class="group relative flex flex-col gap-1.5 p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
 
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
@@ -181,11 +183,10 @@
                                     class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 } @else {
-                                <span class="inline-flex rounded-full h-2 w-2 bg-zinc-400 dark:bg-zinc-600"></span>
+                                <span class="inline-flex rounded-full h-2 w-2 bg-zinc-300 dark:bg-zinc-600"></span>
                                 }
                             </span>
-                            <span class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ room.visitorName
-                                }}</span>
+                            <span class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ room.visitorName }}</span>
                         </div>
 
                         <span class="text-[10px] text-zinc-400 dark:text-zinc-500">
@@ -194,7 +195,7 @@
                     </div>
 
                     <!-- Message Preview -->
-                    <p class="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-1 pr-6">
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 pr-6">
                         {{ room.lastMessage }}
                     </p>
 
@@ -202,13 +203,13 @@
                     <div
                         class="flex items-center justify-between mt-1 pt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
                         <div class="flex items-center gap-1 truncate">
-                            <ng-icon name="lucideGlobe" class="text-xs shrink-0"></ng-icon>
-                            <span class="truncate font-mono">{{ room.currentPage || '/' }}</span>
+                            <ng-icon name="lucideGlobe" class="text-xs shrink-0 text-zinc-400 dark:text-zinc-500"></ng-icon>
+                            <span class="truncate font-mono text-zinc-500 dark:text-zinc-400">{{ room.currentPage || '/' }}</span>
                         </div>
 
                         @if (room.unreadCount > 0) {
                         <span hlmBadge
-                            class="bg-emerald-600 text-white text-[10px] h-4 min-w-4 px-1 flex items-center justify-center rounded-full border-none">
+                            class="bg-emerald-600 text-white text-[10px] h-4 min-w-4 px-1 flex items-center justify-center rounded-full border-none font-medium">
                             {{ room.unreadCount }}
                         </span>
                         }
@@ -217,7 +218,7 @@
                 } @empty {
                 <div
                     class="flex flex-col items-center justify-center h-48 text-center text-zinc-400 dark:text-zinc-600">
-                    <ng-icon name="lucideMessageSquare" class="text-2xl mb-2 opacity-50"></ng-icon>
+                    <ng-icon name="lucideMessageSquare" class="text-2xl mb-2 opacity-40"></ng-icon>
                     <p class="text-xs">No active visitor sessions</p>
                 </div>
                 }
@@ -226,23 +227,23 @@
 
         <!-- Right Main: Live Chat Window -->
         <main [class.hidden]="!isMobileChatOpen()" [class.flex]="isMobileChatOpen()"
-            class="min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/40 dark:bg-zinc-950 md:!flex">
+            class="min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/50 dark:bg-zinc-950 md:!flex">
 
             @if (activeRoom(); as room) {
 
             <!-- Chat Header with Spartan Avatar -->
             <div
-                class="flex min-h-16 shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6">
+                class="flex min-h-16 shrink-0 items-center gap-2 border-b border-zinc-200/80 bg-white/80 px-3 py-2.5 dark:border-zinc-800/80 dark:bg-zinc-900/80 backdrop-blur-sm sm:px-6">
 
                 <button hlmBtn type="button" variant="ghost" size="sm" (click)="backToRooms()"
                     aria-label="Back to conversations"
-                    class="h-9 w-9 shrink-0 p-0 text-zinc-500 dark:text-zinc-400 md:hidden">
+                    class="h-9 w-9 shrink-0 p-0 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 md:hidden cursor-pointer">
                     <ng-icon name="lucideArrowLeft" class="text-lg"></ng-icon>
                 </button>
 
                 <hlm-avatar class="h-8 w-8 shrink-0">
                     <span hlmAvatarFallback
-                        class="bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                        class="bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                         {{ room.visitorName.slice(0, 2).toUpperCase() }}
                     </span>
                 </hlm-avatar>
@@ -253,14 +254,21 @@
                             {{ room.visitorName }}
                         </h2>
 
-                        <span hlmBadge variant="outline" [class.text-emerald-600]="room.isOnline"
+                        <span hlmBadge variant="outline" 
+                            [class.text-emerald-600]="room.isOnline"
+                            [class.dark:text-emerald-400]="room.isOnline"
                             [class.border-emerald-500/30]="room.isOnline"
+                            [class.bg-emerald-500/10]="room.isOnline"
+                            [class.text-zinc-500]="!room.isOnline"
+                            [class.dark:text-zinc-400]="!room.isOnline"
+                            [class.border-zinc-200]="!room.isOnline"
+                            [class.dark:border-zinc-800]="!room.isOnline"
                             class="shrink-0 px-1.5 py-0 text-[10px] font-normal">
                             {{ room.isOnline ? 'Online' : 'Offline' }}
                         </span>
                     </div>
 
-                    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-400">
+                    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">
                         <span class="hidden sm:inline">
                             IP: {{ room.visitorIp || 'Hidden' }}
                         </span>
@@ -279,21 +287,23 @@
                 </div>
             </div>
 
-
             <!-- Chat Message Logs -->
-            <div class="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-6">
+            <div class="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
                 @for (msg of room.messages; track msg.id) {
                 <div class="flex min-w-0 flex-col" [class.items-end]="msg.sender === 'agent'"
                     [class.items-start]="msg.sender === 'visitor'">
 
                     <div class="flex min-w-0 max-w-[90%] items-end gap-2 sm:max-w-[80%] lg:max-w-[75%]">
-                        <div [class.bg-emerald-600]="msg.sender === 'agent'" [class.text-white]="msg.sender === 'agent'"
-                            [class.rounded-br-none]="msg.sender === 'agent'" [class.bg-white]="msg.sender === 'visitor'"
-                            [class.dark:bg-zinc-800]="msg.sender === 'visitor'"
-                            [class.text-zinc-800]="msg.sender === 'visitor'"
+                        <div [class.bg-emerald-600]="msg.sender === 'agent'" 
+                            [class.text-white]="msg.sender === 'agent'"
+                            [class.rounded-br-none]="msg.sender === 'agent'" 
+                            [class.bg-white]="msg.sender === 'visitor'"
+                            [class.dark:bg-zinc-800/90]="msg.sender === 'visitor'"
+                            [class.text-zinc-900]="msg.sender === 'visitor'"
                             [class.dark:text-zinc-100]="msg.sender === 'visitor'"
-                            [class.border]="msg.sender === 'visitor'" [class.border-zinc-200]="msg.sender === 'visitor'"
+                            [class.border]="msg.sender === 'visitor'" 
+                            [class.border-zinc-200]="msg.sender === 'visitor'"
                             [class.dark:border-zinc-700/60]="msg.sender === 'visitor'"
                             [class.rounded-bl-none]="msg.sender === 'visitor'"
                             class="min-w-0 whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs leading-relaxed shadow-xs [overflow-wrap:anywhere] sm:px-4">
@@ -313,11 +323,11 @@
                     <div hlmField class="flex-1">
                         <input hlmInput type="text" placeholder="Type your response to visitor..."
                             [ngModel]="replyText()" (ngModelChange)="replyText.set($event)" name="replyText"
-                            class="w-full h-10 px-3 text-xs bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 focus-visible:ring-emerald-500 rounded-lg" />
+                            class="w-full h-10 px-3 text-xs bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-emerald-500 focus-visible:ring-emerald-500/20 rounded-lg" />
                     </div>
 
                     <button hlmBtn type="submit" [disabled]="!replyText().trim()"
-                        class="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg gap-1.5 text-xs font-medium inline-flex items-center justify-center shrink-0">
+                        class="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1.5 text-xs font-medium inline-flex items-center justify-center shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all">
                         <ng-icon name="lucideSend" class="text-xs"></ng-icon>
                         <span>Send</span>
                     </button>
@@ -328,11 +338,11 @@
             <!-- Empty State -->
             <div class="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <div
-                    class="h-12 w-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 mb-3">
+                    class="h-12 w-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 mb-3">
                     <ng-icon name="lucideMessageSquare" class="text-2xl"></ng-icon>
                 </div>
                 <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">No active conversation selected</h3>
-                <p class="text-xs text-zinc-500 max-w-sm mt-1">Select a visitor from the list to start responding in
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mt-1">Select a visitor from the list to start responding in
                     real-time.</p>
             </div>
             }
@@ -345,23 +355,23 @@
     <div
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
         <div
-            class="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-2xl">
+            class="w-full max-w-lg rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-2xl text-zinc-900 dark:text-zinc-100">
 
-            <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
-                <div class="flex items-center gap-2 text-zinc-900 dark:text-zinc-50 font-semibold text-sm">
-                    <ng-icon name="lucideCode2" class="text-emerald-500 text-base"></ng-icon>
+            <div class="flex items-center justify-between pb-3 border-b border-zinc-200/70 dark:border-zinc-800/70">
+                <div class="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 font-semibold text-sm">
+                    <ng-icon name="lucideCode2" class="text-emerald-600 dark:text-emerald-400 text-base"></ng-icon>
                     Embed Support Widget
                 </div>
                 <button hlmBtn variant="ghost" size="sm" (click)="isEmbedDialogOpen.set(false)"
-                    class="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-sm">
+                    class="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-sm transition-colors cursor-pointer inline-flex items-center justify-center">
                     ✕
                 </button>
             </div>
 
             <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-3 leading-relaxed">
                 Insert this script snippet before the closing <code
-                    class="text-emerald-600 font-mono text-[11px]">&lt;/body&gt;</code> tag of your website. Replace
-                <code class="text-zinc-400 font-mono text-[11px]">YOUR_SAVED_API_KEY</code> with the key you previously
+                    class="text-emerald-600 dark:text-emerald-400 font-mono text-[11px] bg-emerald-500/10 px-1 py-0.5 rounded">&lt;/body&gt;</code> tag of your website. Replace
+                <code class="text-zinc-500 dark:text-zinc-400 font-mono text-[11px] bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">YOUR_SAVED_API_KEY</code> with the key you previously
                 saved:
             </p>
 
@@ -369,14 +379,15 @@
                 class="relative mt-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-200 overflow-x-auto">
                 <code>{{ embedCodeSnippet() }}</code>
                 <button hlmBtn size="sm" variant="secondary" (click)="copySnippet()"
-                    class="absolute top-2 right-2 h-7 px-2 text-[11px] gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border-none inline-flex items-center">
-                    <ng-icon [name]="copiedSnippet() ? 'lucideCheck' : 'lucideCopy'" class="text-xs"></ng-icon>
+                    class="absolute top-2 right-2 h-7 px-2 text-[11px] gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/50 inline-flex items-center cursor-pointer transition-colors">
+                    <ng-icon [name]="copiedSnippet() ? 'lucideCheck' : 'lucideCopy'" class="text-xs" [class.text-emerald-400]="copiedSnippet()"></ng-icon>
                     {{ copiedSnippet() ? 'Copied' : 'Copy' }}
                 </button>
             </div>
 
             <div class="mt-6 flex justify-end">
-                <button hlmBtn variant="outline" size="sm" (click)="isEmbedDialogOpen.set(false)">
+                <button hlmBtn variant="outline" size="sm" (click)="isEmbedDialogOpen.set(false)"
+                    class="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 cursor-pointer">
                     Done
                 </button>
             </div>
