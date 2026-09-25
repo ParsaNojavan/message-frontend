@@ -138,6 +138,12 @@ export class ChatSidebarComponent implements OnInit {
     return fullName || user.username || user.phoneNumber || 'User';
   });
 
+  readonly userAvatar = computed(() => {
+    const user = this.currentUser() as any;
+    return user?.avatar || user?.photoUrl || null;
+  });
+
+
   readonly userInitials = computed(() => {
     const user = this.currentUser();
     if (!user) return 'U';

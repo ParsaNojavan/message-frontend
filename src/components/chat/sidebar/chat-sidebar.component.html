@@ -7,7 +7,7 @@
             <button (click)="openProfile()"
                 class="rounded-full transition-transform active:scale-95 focus:outline-none cursor-pointer">
                 <hlm-avatar class="ring-1 ring-zinc-200/70 dark:ring-zinc-800/60 hover:ring-emerald-500/50 transition-all">
-                    <img *ngIf="currentUser()?.photoUrl" [src]="currentUser()?.photoUrl" hlmAvatarImage [alt]="userDisplayName()" />
+                    <img *ngIf="userAvatar()" [src]="userAvatar()" hlmAvatarImage [alt]="userDisplayName()" />
                     <span hlmAvatarFallback class="bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs">
                         {{ userInitials() }}
                     </span>
@@ -539,7 +539,7 @@
         <div class="flex flex-col items-center gap-2 pt-6 pb-6 px-4">
             <div class="relative">
                 <hlm-avatar class="size-20 ring-1 ring-zinc-200/70 dark:ring-zinc-800/60">
-                    <img *ngIf="currentUser()?.photoUrl" [src]="currentUser()?.photoUrl" hlmAvatarImage [alt]="userDisplayName()" />
+                    <img *ngIf="userAvatar()" [src]="userAvatar()" hlmAvatarImage [alt]="userDisplayName()" />
                     <span hlmAvatarFallback
                         class="font-semibold text-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                         {{ userInitials() }}
