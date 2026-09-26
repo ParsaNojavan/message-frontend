@@ -8,7 +8,7 @@ import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
 import { BackendMessagesResponse } from '../../models/dto/message.dto';
 import { RoomMuteResponse } from '../../models/dto/roomMute.dto';
-import { Message, MessageMediaItem, MessageReaction, MessageReply } from '../../models/message.model';
+import { Message, MessageMediaItem, MessageReaction, MessageReply, MessageUserDetail } from '../../models/message.model';
 
 @Injectable({
   providedIn: 'root'
@@ -72,16 +72,31 @@ export class ChatService {
     }
   }
 
+  /**
+   * تبدیل و نرمال‌سازی دیتای ریپلای ارسالی از سرور با پشتیبانی از آبجکت کامل
+   */
   private normalizeReply(rawReply: any): MessageReply | null {
     if (!rawReply) return null;
+    
+    // در صورتی که فقط شناسه ریپلای ارسال شده باشد
     if (typeof rawReply === 'string' || typeof rawReply === 'number') {
-      return { id: rawReply, content: 'پیام ارجاع‌شده' };
+      return { 
+        id: String(rawReply),
+        _id: String(rawReply), 
+        content: 'پیام ارجاع‌شده' 
+      };
     }
+
+    const replyId = String(rawReply._id || rawReply.id || '');
     return {
-      id: rawReply._id || rawReply.id,
+      id: replyId,
+      _id: replyId,
       content: rawReply.content || rawReply.message || '',
-      senderName: rawReply.senderName || (rawReply.senderId ? String(rawReply.senderId) : undefined),
-      senderId: rawReply.senderId ? String(rawReply.senderId) : undefined
+      senderId: rawReply.senderId ? String(rawReply.senderId) : undefined,
+      sender: rawReply.sender || null,
+      senderName: rawReply.senderName || undefined,
+      media: rawReply.media || [],
+      type: rawReply.type
     };
   }
 
@@ -94,13 +109,18 @@ export class ChatService {
           const currentUserId = this.authService.currentUser();
           const roomId = String(incomingMsg.roomId);
           const isSender = String(incomingMsg.senderId) === String(currentUserId);
-          const serverMsgId = incomingMsg._id || incomingMsg.id;
+          const serverMsgId = String(incomingMsg._id || incomingMsg.id);
 
           const formattedMessage: Message = {
             id: serverMsgId,
+            _id: serverMsgId,
             conversationId: roomId,
+            roomId: roomId,
+            senderId: incomingMsg.senderId ? String(incomingMsg.senderId) : undefined,
+            sender: incomingMsg.sender || null,
             content: incomingMsg.content || incomingMsg.message || '',
             time: incomingMsg.createdAt || new Date().toISOString(),
+            createdAt: incomingMsg.createdAt || new Date().toISOString(),
             isSender,
             status: incomingMsg.isRead ? 'read' : 'sent',
             replyTo: this.normalizeReply(incomingMsg.replyTo),
@@ -126,7 +146,7 @@ export class ChatService {
               }
             }
 
-            const exists = currentRoomMsgs.some(m => String(m.id) === String(serverMsgId));
+            const exists = currentRoomMsgs.some(m => String(m.id) === serverMsgId || String(m._id) === serverMsgId);
             if (!exists) {
               return {
                 ...allMessages,
@@ -137,7 +157,7 @@ export class ChatService {
             return allMessages;
           });
 
-          this.updateConversationMetadata(roomId, formattedMessage.content, formattedMessage.time, isSender);
+          this.updateConversationMetadata(roomId, formattedMessage.content, String(formattedMessage.time), isSender);
         },
         error: (err) => console.error('Socket newMessage error:', err)
       });
@@ -152,14 +172,14 @@ export class ChatService {
             if (!targetRoomId || !allMessages[targetRoomId]) return allMessages;
 
             const roomMsgs = allMessages[targetRoomId];
-            const targetIndex = roomMsgs.findIndex(m => String(m.id) === String(messageId));
+            const targetIndex = roomMsgs.findIndex(m => String(m.id) === String(messageId) || String(m._id) === String(messageId));
 
             if (targetIndex === -1) return allMessages;
 
             const updatedMessages = [...roomMsgs];
             updatedMessages[targetIndex] = {
               ...updatedMessages[targetIndex],
-              reactions: reactions
+              reactions: reactions || []
             };
 
             return {
@@ -250,19 +270,27 @@ export class ChatService {
       .pipe(
         map(response => {
           const msgs = response?.messages || [];
-          return msgs.map(m => ({
-            id: m._id,
-            conversationId: m.roomId,
-            content: m.content,
-            time: m.createdAt,
-            isSender: String(m.senderId) === String(currentUserId),
-            status: m.isRead ? 'read' : 'sent',
-            replyTo: this.normalizeReply((m as any).replyTo),
-            reactions: (m as any).reactions || [],
-            media: (m as any).media || [],
-            isForwarded: (m as any).isForwarded || false,
-            isEdited: (m as any).isEdited || false
-          } as Message));
+          return msgs.map(m => {
+            const serverId = String(m._id || (m as any).id);
+            return {
+              id: serverId,
+              _id: serverId,
+              conversationId: String(m.roomId),
+              roomId: String(m.roomId),
+              senderId: String(m.senderId),
+              sender: (m as any).sender || null,
+              content: m.content,
+              time: m.createdAt,
+              createdAt: m.createdAt,
+              isSender: String(m.senderId) === String(currentUserId),
+              status: m.isRead ? 'read' : 'sent',
+              replyTo: this.normalizeReply((m as any).replyTo),
+              reactions: (m as any).reactions || [],
+              media: (m as any).media || [],
+              isForwarded: (m as any).isForwarded || false,
+              isEdited: (m as any).isEdited || false
+            } as Message;
+          });
         })
       )
       .subscribe({
@@ -313,21 +341,26 @@ export class ChatService {
     }
 
     if (currentReply) {
-      payload.replyTo = String(currentReply.id);
+      payload.replyTo = String(currentReply._id || currentReply.id);
     }
 
     // اضافه کردن اپتیمیستیک به لیست با وضعیت sending
     const optimisticMessage: Message = {
       id: `temp_${Date.now()}`,
-      conversationId: activeId,
+      conversationId: String(activeId),
+      roomId: String(activeId),
       content: trimmedText,
       time: nowIso,
+      createdAt: nowIso,
       isSender: true,
       status: 'sending',
       replyTo: currentReply ? {
-        id: currentReply.id,
+        id: currentReply._id || currentReply.id,
+        _id: currentReply._id || currentReply.id,
         content: currentReply.content,
-        senderName: currentReply.isSender ? 'شما' : undefined
+        sender: currentReply.sender,
+        senderName: currentReply.isSender ? 'شما' : undefined,
+        media: currentReply.media
       } : null,
       reactions: [],
       media: media || []

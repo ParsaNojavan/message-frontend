@@ -64,7 +64,13 @@ import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload
 import { CallPeer, CallService } from '../../../services/call/call.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Message, MessageMediaItem, ReactionSummaryItem } from '../../../models/message.model';
+import {
+  Message,
+  MessageMediaItem,
+  MessageReply,
+  MessageUserDetail,
+  ReactionSummaryItemWithUsers
+} from '../../../models/message.model';
 
 @Component({
   selector: 'app-chat-window',
@@ -127,12 +133,14 @@ export class ChatWindowComponent implements AfterViewChecked {
   @ViewChild('searchDialog', { read: ElementRef }) searchDialogRef?: ElementRef<HTMLElement>;
   @ViewChild(SearchMessagesDialogComponent) searchDialogComponent?: SearchMessagesDialogComponent;
 
-  // شناسه کاربری لاگین‌شده
+  // استخراج نرمال‌شده و امن شناسه کاربر جاری
   get currentUserId(): string {
-    return String(this.authService.currentUser() || 'current-user-id');
+    const user: any = this.authService.currentUser();
+    if (!user) return '';
+    return String(user.id || user._id || user.sub || user.userId || (typeof user === 'string' ? user : ''));
   }
 
-  // متغیرهای وضعیت اسکرول
+  // وضعیت‌های اسکرول
   showScrollBottom = signal(false);
   private isNearBottom = true;
   private previousMessageCount = 0;
@@ -202,6 +210,51 @@ export class ChatWindowComponent implements AfterViewChecked {
   chatVideos = signal<VideoItem[]>([]);
   chatFiles = signal<FileItem[]>([]);
   commonGroups = signal<GroupItem[]>([]);
+
+  // استخراج هوشمند نام کاربر با اولویت‌های مختلف
+  getUserDisplayName(user?: MessageUserDetail | any | null, fallback = 'کاربر'): string {
+    if (!user) return fallback;
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    return fullName || user.username || user.phoneNumber || user.name || fallback;
+  }
+
+  // نام فرستنده ریپلای همراه با پشتیبانی از پیام‌های خودی و فالبک مخاطب
+  getReplySenderName(reply: MessageReply | any | null | undefined): string {
+    if (!reply) return 'پیام';
+
+    const replySenderId = String(
+      reply.senderId?._id ||
+      reply.senderId?.id ||
+      reply.sender?._id ||
+      reply.sender?.id ||
+      reply.senderId ||
+      ''
+    );
+
+    // ۱. اگر فرستنده ریپلای خود من باشم
+    if (replySenderId && this.currentUserId && replySenderId === this.currentUserId) {
+      return 'شما';
+    }
+
+    // ۲. آبجکت کامل فرستنده وجود داشته باشد
+    if (reply.sender) {
+      const name = this.getUserDisplayName(reply.sender);
+      if (name && name !== 'کاربر') return name;
+    }
+
+    // ۳. نام متنی به شکل پیش‌فرض ارسال شده باشد
+    if (reply.senderName) {
+      return reply.senderName;
+    }
+
+    // ۴. فالبک به مخاطب مستقیم فعلی صفحه (در صورت مطابقت شناسه یا حضور در دایرکت)
+    const active = this.selectedUser();
+    if (active && active.name && active.name !== 'Unknown') {
+      return active.name;
+    }
+
+    return 'پیام';
+  }
 
   onScroll(event: Event): void {
     const el = event.target as HTMLElement;
@@ -341,31 +394,72 @@ export class ChatWindowComponent implements AfterViewChecked {
   }
 
   onReaction(msg: Message, emoji: string) {
-    this.chatService.sendReaction(msg.id, emoji);
+    const targetId = msg._id || msg.id;
+    this.chatService.sendReaction(targetId, emoji);
   }
 
   getUserReaction(msg: Message): string | null {
     if (!msg.reactions || !Array.isArray(msg.reactions)) return null;
-    const found = msg.reactions.find(r => String(r.userId) === this.currentUserId);
+    const curId = this.currentUserId;
+    if (!curId) return null;
+
+    const found = msg.reactions.find(r => {
+      const rUserId = String((r.userId as any)?._id || (r.userId as any)?.id || r.userId || '');
+      return rUserId === curId;
+    });
+
     return found ? found.emoji : null;
   }
 
-  getReactionSummary(msg: Message): ReactionSummaryItem[] {
+  getReactionSummary(msg: Message): ReactionSummaryItemWithUsers[] {
     if (!msg.reactions || !Array.isArray(msg.reactions) || msg.reactions.length === 0) {
       return [];
     }
 
-    const summaryMap = new Map<string, { count: number; users: string[]; hasCurrentUser: boolean }>();
+    const summaryMap = new Map<string, {
+      count: number;
+      hasCurrentUser: boolean;
+      userProfiles: Array<{ name: string; avatar?: string }>;
+    }>();
 
-    for (const item of msg.reactions) {
+    const curId = this.currentUserId;
+
+    for (const item of (msg.reactions as any[])) {
       const emoji = item.emoji;
-      const userName = item.userName || 'کاربر';
-      const isCurrent = String(item.userId) === this.currentUserId;
+      const itemUserId = String(item.userId?._id || item.userId?.id || item.userId || '');
+      const isCurrent = !!curId && itemUserId === curId;
 
-      const current = summaryMap.get(emoji) || { count: 0, users: [], hasCurrentUser: false };
+      // دریافت نام و آواتار از آبجکت کاربر یا مقادیر فالبک
+      let name = item.user ? this.getUserDisplayName(item.user) : (item.userName || null);
+      let avatar = item.user?.photoUrl || item.user?.avatar;
+
+      // فالبک کلاینتی در صورتی که هنوز یوزر توسط سوکت نرسیده باشد
+      if (!name || !avatar) {
+        if (isCurrent) {
+          const me: any = this.authService.currentUser();
+          name = name || 'شما';
+          avatar = avatar || me?.photoUrl || me?.avatar;
+        } else {
+          const active = this.selectedUser();
+          name = name || active?.name || 'کاربر';
+          avatar = avatar || active?.avatar;
+        }
+      }
+
+      const current = summaryMap.get(emoji) || { count: 0, hasCurrentUser: false, userProfiles: [] };
       current.count++;
-      current.users.push(userName);
-      if (isCurrent) current.hasCurrentUser = true;
+      if (isCurrent) {
+        current.hasCurrentUser = true;
+      }
+
+      // حداکثر ۳ کاربر اول برای نمایش در حبابچه (Badge) آواتارها
+      if (current.userProfiles.length < 3) {
+        current.userProfiles.push({
+          name: name || 'کاربر',
+          avatar
+        });
+      }
+
       summaryMap.set(emoji, current);
     }
 
@@ -422,13 +516,14 @@ export class ChatWindowComponent implements AfterViewChecked {
   }
 
   scrollToMessage(message: Message) {
-    if (!message?.id) return;
+    const targetId = message?._id || message?.id;
+    if (!targetId) return;
 
     setTimeout(() => {
-      const element = document.getElementById(`msg-${message.id}`);
+      const element = document.getElementById(`msg-${targetId}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        this.highlightedMessageId.set(message.id);
+        this.highlightedMessageId.set(targetId);
         setTimeout(() => this.highlightedMessageId.set(null), 1500);
       }
     }, 100);
@@ -447,10 +542,9 @@ export class ChatWindowComponent implements AfterViewChecked {
     if (!files || files.length === 0) return;
 
     try {
-      // ایجاد فرمت MessageMediaItem متناسب با ساختار سرور
       const mediaList: MessageMediaItem[] = files.map(file => ({
         mediaId: crypto.randomUUID(),
-        url: URL.createObjectURL(file), // در صورت داشتن سرویس آپلود، URL سرور جایگزین می‌شود
+        url: URL.createObjectURL(file),
         type: file.type || (type === 'document' ? 'application/octet-stream' : 'application/file')
       }));
 
