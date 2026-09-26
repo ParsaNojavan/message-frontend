@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../services/chat/chat.service';
 import { AuthService } from '../../../services/auth/auth.service';
+import { MediaService, MediaUploadResponse } from '../../../services/media/media.service'; // مسیر قرارگیری مدیا سرویس
 import { provideIcons, NgIconComponent } from '@ng-icons/core';
 import 'emoji-picker-element';
 
@@ -123,6 +124,7 @@ import {
 export class ChatWindowComponent implements AfterViewChecked {
   readonly chatService = inject(ChatService);
   readonly callService = inject(CallService);
+  private readonly mediaService = inject(MediaService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -133,20 +135,19 @@ export class ChatWindowComponent implements AfterViewChecked {
   @ViewChild('searchDialog', { read: ElementRef }) searchDialogRef?: ElementRef<HTMLElement>;
   @ViewChild(SearchMessagesDialogComponent) searchDialogComponent?: SearchMessagesDialogComponent;
 
-  // استخراج نرمال‌شده و امن شناسه کاربر جاری
   get currentUserId(): string {
     const user: any = this.authService.currentUser();
     if (!user) return '';
     return String(user.id || user._id || user.sub || user.userId || (typeof user === 'string' ? user : ''));
   }
 
-  // وضعیت‌های اسکرول
   showScrollBottom = signal(false);
   private isNearBottom = true;
   private previousMessageCount = 0;
 
   isAttachmentOpen = signal(false);
   isEmojiOpen = signal(false);
+  isUploadingMedia = signal(false);
   activeTab: 'emoji' | 'gif' | 'sticker' = 'emoji';
   showingReactionsForMsgId: string | number | null = null;
   highlightedMessageId = signal<string | number | null>(null);
@@ -211,14 +212,12 @@ export class ChatWindowComponent implements AfterViewChecked {
   chatFiles = signal<FileItem[]>([]);
   commonGroups = signal<GroupItem[]>([]);
 
-  // استخراج هوشمند نام کاربر با اولویت‌های مختلف
   getUserDisplayName(user?: MessageUserDetail | any | null, fallback = 'کاربر'): string {
     if (!user) return fallback;
     const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     return fullName || user.username || user.phoneNumber || user.name || fallback;
   }
 
-  // نام فرستنده ریپلای همراه با پشتیبانی از پیام‌های خودی و فالبک مخاطب
   getReplySenderName(reply: MessageReply | any | null | undefined): string {
     if (!reply) return 'پیام';
 
@@ -231,23 +230,19 @@ export class ChatWindowComponent implements AfterViewChecked {
       ''
     );
 
-    // ۱. اگر فرستنده ریپلای خود من باشم
     if (replySenderId && this.currentUserId && replySenderId === this.currentUserId) {
       return 'شما';
     }
 
-    // ۲. آبجکت کامل فرستنده وجود داشته باشد
     if (reply.sender) {
       const name = this.getUserDisplayName(reply.sender);
       if (name && name !== 'کاربر') return name;
     }
 
-    // ۳. نام متنی به شکل پیش‌فرض ارسال شده باشد
     if (reply.senderName) {
       return reply.senderName;
     }
 
-    // ۴. فالبک به مخاطب مستقیم فعلی صفحه (در صورت مطابقت شناسه یا حضور در دایرکت)
     const active = this.selectedUser();
     if (active && active.name && active.name !== 'Unknown') {
       return active.name;
@@ -429,11 +424,9 @@ export class ChatWindowComponent implements AfterViewChecked {
       const itemUserId = String(item.userId?._id || item.userId?.id || item.userId || '');
       const isCurrent = !!curId && itemUserId === curId;
 
-      // دریافت نام و آواتار از آبجکت کاربر یا مقادیر فالبک
       let name = item.user ? this.getUserDisplayName(item.user) : (item.userName || null);
       let avatar = item.user?.photoUrl || item.user?.avatar;
 
-      // فالبک کلاینتی در صورتی که هنوز یوزر توسط سوکت نرسیده باشد
       if (!name || !avatar) {
         if (isCurrent) {
           const me: any = this.authService.currentUser();
@@ -452,7 +445,6 @@ export class ChatWindowComponent implements AfterViewChecked {
         current.hasCurrentUser = true;
       }
 
-      // حداکثر ۳ کاربر اول برای نمایش در حبابچه (Badge) آواتارها
       if (current.userProfiles.length < 3) {
         current.userProfiles.push({
           name: name || 'کاربر',
@@ -539,20 +531,59 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   async handleFileSend(payload: UploadPayload) {
     const { files, caption, type } = payload;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || this.isUploadingMedia()) return;
+
+    this.isUploadingMedia.set(true);
 
     try {
-      const mediaList: MessageMediaItem[] = files.map(file => ({
-        mediaId: crypto.randomUUID(),
-        url: URL.createObjectURL(file),
-        type: file.type || (type === 'document' ? 'application/octet-stream' : 'application/file')
-      }));
+      // ۱. بررسی و ایجاد Room در صورت چت lazy
+      let currentRoomId = this.chatService.activeConversationId();
+      if (!currentRoomId && this.lazyUserId) {
+        const roomResponse: any = await firstValueFrom(this.chatService.startDirectChat(this.lazyUserId));
+        currentRoomId = roomResponse?.data?.roomId;
+        if (currentRoomId) {
+          this.chatService.setActiveConversation(currentRoomId);
+        }
+      }
 
+      if (!currentRoomId) {
+        console.error('Room ID is missing and could not be created.');
+        return;
+      }
+
+      // ۲. آپلود از طریق MediaService و تبدیل پاسخ به مدل MessageMediaItem
+      const uploadPromises = files.map(async (file) => {
+        const response: MediaUploadResponse = await firstValueFrom(this.mediaService.upload(file));
+        const mediaEntity = response.data;
+
+        const mediaItem: MessageMediaItem = {
+          mediaId: mediaEntity._id || mediaEntity.id || crypto.randomUUID(),
+          url: `http://localhost:3001${mediaEntity.url}`,
+          type: mediaEntity.mimeType || file.type || (type === 'document' ? 'application/octet-stream' : 'application/file')
+        };
+
+        return mediaItem;
+      });
+
+      const mediaList: MessageMediaItem[] = await Promise.all(uploadPromises);
+
+      // ۳. ارسال پیام نهایی حاوی رسانه‌ها به چت سرویس
       this.chatService.sendMessage(caption || '', mediaList);
+
       setTimeout(() => this.scrollToBottom('smooth'), 60);
 
+      // ۴. به‌روزرسانی URL مرورگر در صورت lazyUser
+      if (this.lazyUserId && currentRoomId) {
+        this.router.navigate([], {
+          queryParams: { id: currentRoomId },
+          replaceUrl: true
+        });
+      }
+
     } catch (err) {
-      console.error('Error sending media files:', err);
+      console.error('Error uploading or sending media files:', err);
+    } finally {
+      this.isUploadingMedia.set(false);
     }
   }
 
@@ -572,5 +603,54 @@ export class ChatWindowComponent implements AfterViewChecked {
     this.router.navigate(['/chat'], {
       queryParams: {}
     });
+  }
+
+  getMediaGridClass(totalVisual: number, idx: number): string {
+    switch (totalVisual) {
+      case 1:
+        return 'col-span-6 aspect-video max-h-72';
+      case 2:
+        return 'col-span-3 aspect-square max-h-52';
+      case 3:
+        return idx === 0
+          ? 'col-span-6 aspect-video max-h-56'
+          : 'col-span-3 aspect-square max-h-44';
+      case 4:
+        return 'col-span-3 aspect-square max-h-44';
+      case 5:
+        return idx < 3
+          ? 'col-span-2 aspect-square max-h-36'
+          : 'col-span-3 aspect-video max-h-40';
+      default:
+        return idx < 2
+          ? 'col-span-3 aspect-square max-h-40'
+          : 'col-span-2 aspect-square max-h-36';
+    }
+  }
+
+  getVisualMedia(media: MessageMediaItem[] | any[] | undefined | null): MessageMediaItem[] {
+    if (!media) return [];
+    return media.filter(m => m.type?.toLowerCase().startsWith('image/') || m.type?.toLowerCase().startsWith('video/'));
+  }
+
+  getAudioMedia(media: MessageMediaItem[] | any[] | undefined | null): MessageMediaItem[] {
+    if (!media) return [];
+    return media.filter(m => m.type?.toLowerCase().startsWith('audio/'));
+  }
+
+  getDocumentMedia(media: MessageMediaItem[] | any[] | undefined | null): MessageMediaItem[] {
+    if (!media) return [];
+    return media.filter(m => {
+      const t = m.type?.toLowerCase() || '';
+      return !t.startsWith('image/') && !t.startsWith('video/') && !t.startsWith('audio/');
+    });
+  }
+
+  isImageMedia(item: MessageMediaItem | any): boolean {
+    return !!item?.type?.toLowerCase().startsWith('image/');
+  }
+
+  isVideoMedia(item: MessageMediaItem | any): boolean {
+    return !!item?.type?.toLowerCase().startsWith('video/');
   }
 }
