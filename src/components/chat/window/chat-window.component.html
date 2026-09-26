@@ -112,19 +112,21 @@
                 </div>
             </div>
 
-            @for (msg of chatService.currentMessages(); track msg.id) {
-            <div [id]="'msg-' + msg.id" class="flex w-full min-w-0 items-end gap-2 group transition-colors duration-200"
+            @for (msg of chatService.currentMessages(); track (msg._id || msg.id)) {
+            <div [id]="'msg-' + (msg._id || msg.id)"
+                class="flex w-full min-w-0 items-end gap-2 group transition-colors duration-200"
                 [ngClass]="msg.isSender ? 'justify-end pl-6 sm:pl-16' : 'justify-start pr-6 sm:pr-16'"
-                [class.bg-emerald-500/10]="highlightedMessageId() === msg.id">
+                [class.bg-emerald-500/10]="highlightedMessageId() === (msg._id || msg.id)">
 
                 <!-- Avatar for Receiver -->
                 @if (!msg.isSender) {
                 <hlm-avatar class="size-8 sm:size-9 shrink-0 mb-0.5">
-                    <img *ngIf="selectedUser()?.avatar" [src]="selectedUser()?.avatar" hlmAvatarImage
-                        [alt]="selectedUser()?.name" />
+                    <img *ngIf="msg.sender?.photoUrl || selectedUser()?.avatar"
+                        [src]="msg.sender?.photoUrl || selectedUser()?.avatar" hlmAvatarImage
+                        [alt]="getUserDisplayName(msg.sender, selectedUser()?.name)" />
                     <span hlmAvatarFallback
                         class="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs border border-emerald-200/50 dark:border-emerald-800/50">
-                        {{ (selectedUser()?.name || '?').charAt(0).toUpperCase() }}
+                        {{ getUserDisplayName(msg.sender, selectedUser()?.name || '?').charAt(0).toUpperCase() }}
                     </span>
                 </hlm-avatar>
                 }
@@ -139,27 +141,27 @@
                             ? 'bg-emerald-600 text-white border-emerald-600 rounded-br-xs' 
                             : 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-800 rounded-bl-xs'">
 
-                        <!-- Sender Name for Receiver in Groups/Direct -->
+                        <!-- Sender Name for Receiver -->
                         @if (!msg.isSender) {
                         <div
                             class="text-[12px] font-bold text-emerald-600 dark:text-emerald-400 mb-1 select-none truncate">
-                            {{ selectedUser()?.name || 'Contact' }}
+                            {{ getUserDisplayName(msg.sender, selectedUser()?.name || 'Contact') }}
                         </div>
                         }
 
                         <!-- Reply Preview inside the Bubble (Clickable) -->
                         @if (msg.replyTo) {
-                        <div (click)="scrollToReplyMessage(msg.replyTo.id, $event)"
+                        <div (click)="scrollToReplyMessage(msg.replyTo._id || msg.replyTo.id!, $event)"
                             class="mb-2 p-2 rounded-lg cursor-pointer transition-all select-none border-s-4 overflow-hidden"
                             [ngClass]="msg.isSender 
                                 ? 'bg-emerald-700/60 hover:bg-emerald-700/80 border-white/80 text-white' 
                                 : 'bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-800 border-emerald-500 text-zinc-800 dark:text-zinc-200'">
                             <div class="text-[11px] font-bold truncate"
                                 [ngClass]="msg.isSender ? 'text-emerald-100' : 'text-emerald-600 dark:text-emerald-400'">
-                                {{ msg.replyTo.senderName || 'پیام' }}
+                                {{ getReplySenderName(msg.replyTo) }}
                             </div>
                             <div class="text-[12px] truncate opacity-90 line-clamp-1">
-                                {{ msg.replyTo.content }}
+                                {{ msg.replyTo.content || (msg.replyTo.media?.length ? '📷 فایل ضمیمه' : 'پیام') }}
                             </div>
                         </div>
                         }
@@ -207,8 +209,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-xs font-semibold block truncate">فایل پیوست</span>
-                                    <span class="text-[10px] opacity-75 uppercase">{{ item.type.split('/')[1] || 'FILE'
-                                        }}</span>
+                                    <span class="text-[10px] opacity-75 uppercase">{{ item.type.split('/')[1] || 'FILE' }}</span>
                                 </div>
                             </a>
                             }
@@ -220,15 +221,14 @@
                         <!-- Message Text + Time Badge with Safe Wrapping -->
                         <div class="w-full break-words [overflow-wrap:anywhere] [word-break:break-word]">
                             @if (msg.content) {
-                            <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.content
-                                }}</span>
+                            <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.content }}</span>
                             }
 
                             <!-- Meta Timestamp & Tick -->
                             <span
                                 class="float-end ms-3 mt-1.5 inline-flex items-center gap-1 text-[11px] select-none tabular-nums whitespace-nowrap leading-none"
                                 [ngClass]="msg.isSender ? 'text-emerald-100/90' : 'text-zinc-400 dark:text-zinc-500'">
-                                <span>{{ (msg.time) | date:'HH:mm' }}</span>
+                                <span>{{ (msg.time || msg.createdAt) | date:'HH:mm' }}</span>
                                 @if (msg.isSender) {
                                 @if (msg.status === 'sending') {
                                 <ng-icon name="lucideClock" class="text-xs animate-pulse opacity-80" />
@@ -237,32 +237,55 @@
                                 } @else {
                                 <ng-icon name="lucideCheck" class="text-xs text-emerald-200" />
                                 }
-
                                 }
                             </span>
                         </div>
                     </div>
 
-                    <!-- Reaction Badges -->
+                    <!-- Reaction Badges (Avatar Stack + Emoji) -->
                     @if (msg.reactions && msg.reactions.length > 0) {
-                    <div class="flex flex-wrap items-center gap-1 -mt-2 px-1 z-10 max-w-full"
-                        [ngClass]="msg.isSender ? 'justify-end pe-1' : 'justify-start ps-1'">
+                    <div class="flex flex-wrap items-center gap-1.5 -mt-2.5 px-1.5 z-10 max-w-full"
+                        [ngClass]="msg.isSender ? 'justify-end pe-2.5' : 'justify-start ps-2.5'">
+
                         @for (summary of getReactionSummary(msg); track summary.emoji) {
                         <button type="button" (click)="onBadgeClick(msg, summary.emoji, $event)"
-                            [title]="summary.users.join(', ')"
-                            class="inline-flex items-center gap-1 h-5.5 sm:h-6 px-1.5 rounded-full border shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
-                            [ngClass]="summary.hasCurrentUser 
-                                ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500/50 text-emerald-600 dark:text-emerald-400' 
-                                : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'">
+                            [title]="summary.userProfiles.length ? (summary.userProfiles[0].name + (summary.count > 1 ? ' و دیگران' : '')) : ''"
+                            class="inline-flex items-center gap-1.5 h-6.5 px-2 py-0.5 rounded-full border shadow-sm active:scale-95 transition-all cursor-pointer select-none"
+                            [ngClass]="msg.isSender 
+                                ? (summary.hasCurrentUser 
+                                    ? 'bg-emerald-800 border-emerald-400/60 text-white ring-1 ring-white/20' 
+                                    : 'bg-emerald-700 border-emerald-500/50 text-emerald-100 hover:bg-emerald-700/90') 
+                                : (summary.hasCurrentUser 
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30' 
+                                    : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200/90 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80')">
 
-                            @if (summary.count > 1) {
-                            <span
-                                class="bg-emerald-500 text-white rounded-full text-[10px] font-semibold px-1 min-w-[0.9rem] text-center leading-tight">
+                            <!-- Avatar Stack (Overlap Users) -->
+                            <div class="flex items-center -space-x-1.5 rtl:space-x-reverse shrink-0">
+                                @for (profile of summary.userProfiles; track profile.name) {
+                                @if (profile.avatar) {
+                                <img [src]="profile.avatar" class="size-4 rounded-full object-cover shrink-0 ring-1.5"
+                                    [ngClass]="msg.isSender ? 'ring-emerald-700' : 'ring-zinc-100 dark:ring-zinc-800'"
+                                    [alt]="profile.name" />
+                                } @else {
+                                <div class="size-4 rounded-full flex items-center justify-center font-bold text-[8.5px] uppercase leading-none shrink-0 ring-1.5"
+                                    [ngClass]="msg.isSender 
+                                        ? 'bg-emerald-900 text-white ring-emerald-700' 
+                                        : 'bg-emerald-500 text-white ring-zinc-100 dark:ring-zinc-800'">
+                                    {{ (profile.name || '?').charAt(0) }}
+                                </div>
+                                }
+                                }
+                            </div>
+
+                            <!-- Emoji Icon -->
+                            <span class="text-[13px] leading-none select-none">{{ summary.emoji }}</span>
+
+                            <!-- Reaction Count -->
+                            @if (summary.count > 2) {
+                            <span class="text-[10px] font-bold opacity-90 tabular-nums ps-0.5">
                                 {{ summary.count }}
                             </span>
                             }
-
-                            <span class="text-xs leading-none">{{ summary.emoji }}</span>
                         </button>
                         }
                     </div>
@@ -275,7 +298,7 @@
                         class="w-64 p-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-2xl select-none flex flex-col gap-1">
 
                         <!-- Reaction Details View -->
-                        @if (showingReactionsForMsgId === msg.id) {
+                        @if (showingReactionsForMsgId === (msg._id || msg.id)) {
                         <div class="flex flex-col animate-in fade-in slide-in-from-right-2 duration-150">
                             <div
                                 class="flex items-center justify-between px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 mb-1">
@@ -290,16 +313,21 @@
                             </div>
 
                             <div class="flex flex-col gap-1 max-h-60 overflow-y-auto px-1 py-1 no-scrollbar">
-                                @for (reaction of msg.reactions; track reaction.userId) {
+                                @for (reaction of msg.reactions; track (reaction.userId)) {
                                 <div
                                     class="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                                     <div class="flex items-center gap-2.5 truncate">
+                                        @if (reaction.user?.photoUrl || reaction.user?.photoUrl) {
+                                        <img [src]="reaction.user?.photoUrl || reaction.user?.photoUrl"
+                                            class="size-7 rounded-full object-cover shrink-0" alt="Avatar" />
+                                        } @else {
                                         <div
                                             class="size-7 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0 border border-emerald-200/50 dark:border-emerald-800/50">
-                                            {{ (reaction.userName || reaction.userId || '?').charAt(0).toUpperCase() }}
+                                            {{ (getUserDisplayName(reaction.user, reaction.userName) || '?').charAt(0).toUpperCase() }}
                                         </div>
+                                        }
                                         <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                                            {{ reaction.userName || reaction.userId }}
+                                            {{ getUserDisplayName(reaction.user, reaction.userName) }}
                                         </span>
                                     </div>
                                     <span class="text-base shrink-0">{{ reaction.emoji }}</span>
@@ -347,7 +375,7 @@
 
                             @if (msg.reactions && msg.reactions.length > 0) {
                             <hlm-dropdown-menu-separator class="my-1 bg-zinc-200 dark:bg-zinc-800" />
-                            <button type="button" (click)="openReactionsDetail(msg.id, $event)"
+                            <button type="button" (click)="openReactionsDetail(msg._id || msg.id, $event)"
                                 class="flex w-full items-center justify-between px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200">
                                 <div class="flex items-center gap-3">
                                     <ng-icon name="lucideSmile" class="size-4.5 text-zinc-400 shrink-0" />
@@ -412,10 +440,10 @@
             <ng-icon name="lucideReply" class="text-emerald-500 text-lg shrink-0" />
             <div class="flex flex-col min-w-0 flex-1">
                 <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 truncate">
-                    {{ repMsg.isSender ? 'پاسخ به خودتان' : (selectedUser()?.name || 'مخاطب') }}
+                   reply to {{ getReplySenderName(repMsg) }}
                 </span>
                 <span class="text-xs text-zinc-600 dark:text-zinc-400 truncate block">
-                    {{ repMsg.content }}
+                    {{ repMsg.content || (repMsg.media?.length ? '📷 فایل ضمیمه' : 'پیام') }}
                 </span>
             </div>
         </div>
