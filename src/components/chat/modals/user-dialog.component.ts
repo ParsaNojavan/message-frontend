@@ -22,7 +22,8 @@ import {
   lucideUsers,
   lucideCheck,
   lucideCopy,
-  lucidePlay
+  lucidePlay,
+  lucideInfo
 } from '@ng-icons/lucide';
 
 export type TabType = 'photos' | 'videos' | 'files' | 'groups';
@@ -30,6 +31,7 @@ export type TabType = 'photos' | 'videos' | 'files' | 'groups';
 export interface UserProfileData {
   name: string;
   phone?: string;
+  bio?: string;
   avatar?: string;
   avatarColor?: string;
   isOnline?: boolean;
@@ -74,7 +76,8 @@ export interface GroupItem {
       lucideUsers,
       lucideCheck,
       lucideCopy,
-      lucidePlay
+      lucidePlay,
+      lucideInfo
     })
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -182,7 +185,7 @@ export interface GroupItem {
                 </div>
 
                 <span class="text-xs text-zinc-500 dark:text-zinc-400 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                  <ng-icon [name]="copied() ? 'lucideCheck' : 'lucideCopy'" class="text-base" [class.text-emerald-600]="copied()" [class.dark:text-emerald-400]="copied()"></ng-icon>
+                  <ng-icon [name]="copiedPhone() ? 'lucideCheck' : 'lucideCopy'" class="text-base" [class.text-emerald-600]="copiedPhone()" [class.dark:text-emerald-400]="copiedPhone()"></ng-icon>
                 </span>
               </div>
             }
@@ -215,6 +218,25 @@ export interface GroupItem {
                 </span>
               </button>
             </div>
+
+             <!-- Bio Section -->
+            @if (user?.bio) {
+              <div 
+                (click)="copyBio(user?.bio)"
+                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-colors group">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors">
+                    <ng-icon name="lucideInfo" class="text-lg"></ng-icon>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100 break-words transition-colors">
+                      {{ user?.bio }}
+                    </div>
+                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Bio</div>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
 
           <!-- Tabs Navigation -->
@@ -343,6 +365,7 @@ export class UserProfileModalComponent {
   @Input({ required: true }) user: UserProfileData = {
     name: 'Mom',
     phone: '+98 914 419 0723',
+    bio: 'Hey there! I am using this app.',
     isOnline: false,
     lastSeen: 'last seen Wednesday at 18:00',
     notificationsEnabled: true,
@@ -362,9 +385,9 @@ export class UserProfileModalComponent {
   @Output() notificationsToggled = new EventEmitter<boolean>();
 
   readonly activeTab = signal<TabType>('photos');
-  readonly copied = signal(false);
+  readonly copiedPhone = signal(false);
+  readonly copiedBio = signal(false);
 
-  // وضعیت میوت بودن مستقیماً بر اساس notificationsEnabled تعیین می‌شود
   get isMuted(): boolean {
     return this.user?.notificationsEnabled === false;
   }
@@ -394,8 +417,15 @@ export class UserProfileModalComponent {
   copyPhone(phone?: string): void {
     if (!phone) return;
     navigator.clipboard.writeText(phone);
-    this.copied.set(true);
-    setTimeout(() => this.copied.set(false), 2000);
+    this.copiedPhone.set(true);
+    setTimeout(() => this.copiedPhone.set(false), 2000);
+  }
+
+  copyBio(bio?: string): void {
+    if (!bio) return;
+    navigator.clipboard.writeText(bio);
+    this.copiedBio.set(true);
+    setTimeout(() => this.copiedBio.set(false), 2000);
   }
 
   getInitials(name?: string): string {
