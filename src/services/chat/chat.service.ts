@@ -242,6 +242,7 @@ export class ChatService {
                 ? `${room.otherUser.firstName} ${room.otherUser.lastName || ''}`.trim()
                 : room.name || 'No Name Chat',
               type: room.type,
+              bio: room.otherUser?.bio,
               avatar: room.otherUser?.photoUrl || room.avatar,
               lastMessage: room.lastMessage || 'No Messages',
               lastMessageTime: room.updatedAt || '',

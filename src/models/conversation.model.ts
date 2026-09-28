@@ -10,6 +10,7 @@ export interface Conversation {
   lastMessageTime?: string;
   unreadCount?: number;
   isOnline?: boolean;
+  bio?: string;
   phoneNumber?: string
   mutedUntil?: string | Date | null;
 }

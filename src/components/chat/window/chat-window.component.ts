@@ -172,6 +172,7 @@ export class ChatWindowComponent implements AfterViewChecked {
       phone: activeChat?.phoneNumber || lazyUser?.phone,
       avatar: activeChat?.avatar || lazyUser?.avatar,
       isOnline: activeChat?.isOnline ?? false,
+      bio: activeChat?.bio,
       lastSeen: 'last seen recently',
       avatarColor: 'bg-emerald-600 text-white',
       notificationsEnabled: this.isNotificationsEnabled()
