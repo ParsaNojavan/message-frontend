@@ -7,12 +7,15 @@ import {
     signal,
     computed,
     ElementRef,
-    ViewChild
+    ViewChild,
+    CUSTOM_ELEMENTS_SCHEMA,
+    HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import 'emoji-picker-element'; // Import custom element bundle
 import {
     lucideX,
     lucidePlus,
@@ -45,6 +48,7 @@ interface CropBox {
 @Component({
     selector: 'app-media-upload-modal',
     standalone: true,
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
     imports: [
         CommonModule,
         FormsModule,
@@ -68,11 +72,25 @@ interface CropBox {
             lucideUndo2
         })
     ],
+    styles: [`
+      emoji-picker.whatsapp-theme {
+        width: 100%;
+        height: 100%;
+        --background: transparent;
+        --border-color: transparent;
+        --input-border-color: rgba(120, 120, 120, 0.2);
+        --input-border-radius: 0.75rem;
+      }
+      :host-context(.dark) emoji-picker.whatsapp-theme {
+        --background: transparent;
+        --border-color: transparent;
+      }
+    `],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
     <hlm-dialog [state]="isOpen() ? 'open' : 'closed'" (closed)="onClose()">
       <hlm-dialog-content *hlmDialogPortal
-        class="w-[94vw] sm:max-w-lg bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 p-0 overflow-hidden shadow-2xl rounded-2xl [&>button.absolute]:hidden">
+        class="w-[94vw] sm:max-w-lg bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 p-0 shadow-2xl rounded-2xl [&>button.absolute]:hidden">
 
         <!-- ================= CROP MODE VIEW ================= -->
         @if (isCropping()) {
@@ -254,13 +272,44 @@ interface CropBox {
           </div>
 
           <!-- Caption Input Box -->
-          <div class="p-4 space-y-4">
+          <div class="p-4 space-y-4 relative">
             <div class="relative group">
+
+              <!-- ================= EMOJI PICKER POPUP ================= -->
+              @if (isEmojiPickerOpen()) {
+                <div
+                  (click)="$event.stopPropagation()"
+                  class="absolute bottom-full right-0 mb-2.5 w-[calc(100vw-1.5rem)] sm:w-[360px] max-w-[360px] h-[390px] rounded-2xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-800 shadow-2xl backdrop-blur-md overflow-hidden flex flex-col z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div class="flex-1 overflow-hidden relative">
+                    <emoji-picker class="whatsapp-theme" (emoji-click)="onEmojiSelect($event)">
+                    </emoji-picker>
+                  </div>
+                  <div
+                    class="h-10 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 px-3.5 flex items-center justify-between select-none shrink-0">
+                    <button type="button" (click)="activeTab = 'emoji'"
+                      class="relative py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer"
+                      [class.text-emerald-600]="activeTab === 'emoji'"
+                      [class.dark:text-emerald-400]="activeTab === 'emoji'" 
+                      [class.text-zinc-500]="activeTab !== 'emoji'">
+                      EMOJI
+                      @if (activeTab === 'emoji') {
+                        <span class="absolute bottom-0 inset-x-0 h-0.5 bg-emerald-500 rounded-full"></span>
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
+
               <span class="absolute -top-2.5 left-4 px-1.5 bg-white dark:bg-zinc-900 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 z-10 select-none">
                 Caption
               </span>
+
               <div class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-xl px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-800/40 transition-all">
-                <button type="button" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer">
+                <button type="button" 
+                  (click)="toggleEmojiPicker($event)"
+                  [class.text-emerald-600]="isEmojiPickerOpen()"
+                  [class.dark:text-emerald-400]="isEmojiPickerOpen()"
+                  class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer">
                   <ng-icon name="lucideSmile" class="text-lg block"></ng-icon>
                 </button>
                 <input type="text" [(ngModel)]="caption" (keyup.enter)="onSend()"
@@ -296,6 +345,10 @@ export class MediaUploadModalComponent {
     selectedIndex = signal<number>(0);
     caption = '';
 
+    // Emoji Picker State
+    isEmojiPickerOpen = signal<boolean>(false);
+    activeTab: 'emoji' | 'gif' = 'emoji';
+
     // Crop State Signals
     isCropping = signal<boolean>(false);
     rotation = signal<number>(0);
@@ -330,12 +383,33 @@ export class MediaUploadModalComponent {
         }
     });
 
+    // Close emoji picker when clicking outside of it
+    @HostListener('document:click')
+    onDocumentClick() {
+        if (this.isEmojiPickerOpen()) {
+            this.isEmojiPickerOpen.set(false);
+        }
+    }
+
+    toggleEmojiPicker(event: MouseEvent) {
+        event.stopPropagation();
+        this.isEmojiPickerOpen.update(v => !v);
+    }
+
+    onEmojiSelect(event: any) {
+        const unicode = event.detail?.unicode;
+        if (unicode) {
+            this.caption += unicode;
+        }
+    }
+
     open(files: FileList | File[], type: 'media' | 'document' | 'audio' | 'camera') {
         this.selectedFiles.set(Array.from(files));
         this.activeFileType.set(type);
         this.selectedIndex.set(0);
         this.caption = '';
         this.isCropping.set(false);
+        this.isEmojiPickerOpen.set(false);
         this.isOpen.set(true);
     }
 
@@ -344,6 +418,7 @@ export class MediaUploadModalComponent {
         this.previewCache.clear();
         this.isOpen.set(false);
         this.isCropping.set(false);
+        this.isEmojiPickerOpen.set(false);
         this.selectedFiles.set([]);
     }
 
@@ -489,7 +564,6 @@ export class MediaUploadModalComponent {
             const visualW = isSwapped ? srcH : srcW;
             const visualH = isSwapped ? srcW : srcH;
 
-            // 1. Draw full image rotated to temporary canvas
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = visualW;
             tempCanvas.height = visualH;
@@ -500,7 +574,6 @@ export class MediaUploadModalComponent {
             tempCtx.rotate((rot * Math.PI) / 180);
             tempCtx.drawImage(img, -srcW / 2, -srcH / 2);
 
-            // 2. Extract cropped area to output canvas
             const box = this.cropBox();
             const cropX = (box.x / 100) * visualW;
             const cropY = (box.y / 100) * visualH;
@@ -519,7 +592,6 @@ export class MediaUploadModalComponent {
                 0, 0, outCanvas.width, outCanvas.height
             );
 
-            // 3. Convert to new File blob and replace in state
             outCanvas.toBlob((blob) => {
                 if (!blob) return;
                 const newCroppedFile = new File([blob], activeFile.name, {
@@ -527,7 +599,6 @@ export class MediaUploadModalComponent {
                     lastModified: Date.now()
                 });
 
-                // Invalidate old preview URL
                 const oldUrl = this.previewCache.get(activeFile);
                 if (oldUrl) URL.revokeObjectURL(oldUrl);
                 this.previewCache.delete(activeFile);
