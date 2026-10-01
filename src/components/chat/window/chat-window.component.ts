@@ -57,8 +57,7 @@ import {
   UserProfileModalComponent,
   UserProfileData,
   VideoItem,
-  FileItem,
-  GroupItem
+  FileItem
 } from '../modals/user-dialog.component';
 import { SearchMessagesDialogComponent } from '../modals/search-message.component';
 import { MediaUploadModalComponent, UploadPayload } from '../modals/media-upload-modal.component';
@@ -72,6 +71,7 @@ import {
   MessageUserDetail,
   ReactionSummaryItemWithUsers
 } from '../../../models/message.model';
+import { GroupItem } from '../../../services/chat/group.service';
 
 @Component({
   selector: 'app-chat-window',

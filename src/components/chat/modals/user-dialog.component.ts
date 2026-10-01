@@ -4,6 +4,7 @@ import {
   EventEmitter,
   Input,
   Output,
+  inject,
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -23,12 +24,15 @@ import {
   lucideCheck,
   lucideCopy,
   lucidePlay,
-  lucideInfo
+  lucideInfo,
+  lucideLoader2
 } from '@ng-icons/lucide';
+import { GroupService, GroupItem } from '../../../services/chat/group.service';
 
 export type TabType = 'photos' | 'videos' | 'files' | 'groups';
 
 export interface UserProfileData {
+  id?: string; // شناسه کاربر هدف برای ارسال به اندپوینت
   name: string;
   phone?: string;
   bio?: string;
@@ -47,11 +51,6 @@ export interface VideoItem {
 export interface FileItem {
   name: string;
   size: string;
-}
-
-export interface GroupItem {
-  name: string;
-  membersCount: number;
 }
 
 @Component({
@@ -77,7 +76,8 @@ export interface GroupItem {
       lucideCheck,
       lucideCopy,
       lucidePlay,
-      lucideInfo
+      lucideInfo,
+      lucideLoader2
     })
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -219,7 +219,7 @@ export interface GroupItem {
               </button>
             </div>
 
-             <!-- Bio Section -->
+            <!-- Bio Section -->
             @if (user?.bio) {
               <div 
                 (click)="copyBio(user?.bio)"
@@ -244,13 +244,16 @@ export interface GroupItem {
             @for (tab of tabs; track tab.id) {
               <button 
                 type="button"
-                (click)="activeTab.set(tab.id)"
+                (click)="setTab(tab.id)"
                 [class.text-emerald-600]="activeTab() === tab.id"
                 [class.dark:text-emerald-400]="activeTab() === tab.id"
                 [class.border-emerald-600]="activeTab() === tab.id"
                 [class.dark:border-emerald-400]="activeTab() === tab.id"
                 class="py-3 px-3 border-b-2 border-transparent transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer uppercase flex items-center gap-1.5 font-semibold text-[11px] tracking-wider">
                 <span>{{ tab.label }}</span>
+                @if (tab.id === 'groups' && groups().length > 0) {
+                  <span class="text-[10px] opacity-75">({{ groups().length }})</span>
+                }
               </button>
             }
           </div>
@@ -328,15 +331,26 @@ export interface GroupItem {
               </div>
             }
 
-            <!-- Groups -->
+            <!-- Groups (Connected to Common Rooms) -->
             @if (activeTab() === 'groups') {
-              <div class="flex-1 flex flex-col">
-                @if (groups.length > 0) {
+              <div class="flex-1 flex flex-col justify-between">
+                @if (isLoadingGroups() && groups().length === 0) {
+                  <!-- Loading Skeleton / Spinner -->
+                  <div class="flex-1 flex flex-col items-center justify-center gap-2 py-10 text-zinc-400">
+                    <ng-icon name="lucideLoader2" class="text-2xl animate-spin text-emerald-500"></ng-icon>
+                    <span class="text-xs">Loading common groups...</span>
+                  </div>
+                } @else if (groups().length > 0) {
                   <div class="space-y-2">
-                    @for (group of groups; track group.name) {
-                      <div class="flex items-center gap-3 p-2.5 bg-zinc-100/60 dark:bg-zinc-800/40 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors">
-                        <hlm-avatar class="size-8">
-                          <span hlmAvatarFallback class="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-zinc-100 font-semibold">
+                    @for (group of groups(); track (group.id || group.name)) {
+                      <div 
+                        (click)="onGroupSelected(group)"
+                        class="flex items-center gap-3 p-2.5 bg-zinc-100/60 dark:bg-zinc-800/40 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors">
+                        <hlm-avatar class="size-9">
+                          @if (group.avatar) {
+                            <img hlmAvatarImage [src]="group.avatar" [alt]="group.name" />
+                          }
+                          <span hlmAvatarFallback class="bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-zinc-100 font-semibold">
                             {{ getInitials(group.name) }}
                           </span>
                         </hlm-avatar>
@@ -344,6 +358,22 @@ export interface GroupItem {
                           <p class="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ group.name }}</p>
                           <span class="text-[10px] text-zinc-500 dark:text-zinc-400">{{ group.membersCount }} members</span>
                         </div>
+                      </div>
+                    }
+
+                    <!-- Cursor pagination "Load more" -->
+                    @if (nextCursor()) {
+                      <div class="pt-2 flex justify-center">
+                        <button
+                          type="button"
+                          (click)="loadMoreGroups()"
+                          [disabled]="isLoadingGroups()"
+                          class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-emerald-500/10 transition-colors disabled:opacity-50">
+                          @if (isLoadingGroups()) {
+                            <ng-icon name="lucideLoader2" class="text-sm animate-spin"></ng-icon>
+                          }
+                          <span>Load more</span>
+                        </button>
                       </div>
                     }
                   </div>
@@ -362,7 +392,10 @@ export interface GroupItem {
   `
 })
 export class UserProfileModalComponent {
+  private readonly groupService = inject(GroupService);
+
   @Input({ required: true }) user: UserProfileData = {
+    id: '',
     name: 'Mom',
     phone: '+98 914 419 0723',
     bio: 'Hey there! I am using this app.',
@@ -379,9 +412,15 @@ export class UserProfileModalComponent {
   ];
   @Input() videos: VideoItem[] = [];
   @Input() files: FileItem[] = [];
-  @Input() groups: GroupItem[] = [];
+
+  // گروه‌های مشترک با سیگنال مدیریت می‌شوند
+  readonly groups = signal<GroupItem[]>([]);
+  readonly isLoadingGroups = signal(false);
+  readonly nextCursor = signal<string | null>(null);
+  private hasLoadedGroupsOnce = false;
 
   @Output() chatClicked = new EventEmitter<void>();
+  @Output() groupClicked = new EventEmitter<GroupItem>();
   @Output() notificationsToggled = new EventEmitter<boolean>();
 
   readonly activeTab = signal<TabType>('photos');
@@ -397,8 +436,53 @@ export class UserProfileModalComponent {
       { id: 'photos', label: 'Photos', count: this.photos.length },
       { id: 'videos', label: 'Videos', count: this.videos.length },
       { id: 'files', label: 'Files', count: this.files.length },
-      { id: 'groups', label: 'Groups', count: this.groups.length }
+      { id: 'groups', label: 'Groups', count: this.groups().length }
     ];
+  }
+
+  setTab(tab: TabType): void {
+    this.activeTab.set(tab);
+    if (tab === 'groups' && !this.hasLoadedGroupsOnce) {
+      this.fetchCommonGroups();
+    }
+  }
+
+  fetchCommonGroups(cursor?: string): void {
+    const targetUserId = this.user?.id;
+    if (!targetUserId) {
+      console.warn('Target userId is required to fetch common rooms.');
+      return;
+    }
+
+    this.isLoadingGroups.set(true);
+
+    this.groupService.getCommonGroups(targetUserId, cursor, 20).subscribe({
+      next: (res) => {
+        // بسته به اینکه پاسخ بک‌اند { items: [] } باشد یا مستقیماً آرایه:
+        const incomingItems = Array.isArray(res) ? res : (res.items || []);
+        const cursor = Array.isArray(res) ? null : (res.nextCursor || null);
+
+        this.groups.update((current) => [...current, ...incomingItems]);
+        this.nextCursor.set(cursor);
+        this.hasLoadedGroupsOnce = true;
+        this.isLoadingGroups.set(false);
+      },
+      error: (err) => {
+        console.error('Error fetching common rooms:', err);
+        this.isLoadingGroups.set(false);
+      }
+    });
+  }
+
+  loadMoreGroups(): void {
+    const cursor = this.nextCursor();
+    if (cursor && !this.isLoadingGroups()) {
+      this.fetchCommonGroups(cursor);
+    }
+  }
+
+  onGroupSelected(group: GroupItem): void {
+    this.groupClicked.emit(group);
   }
 
   toggleNotifications(): void {
