@@ -4,6 +4,7 @@ import {
   ViewChild,
   ElementRef,
   AfterViewChecked,
+  OnDestroy,
   signal,
   HostListener,
   CUSTOM_ELEMENTS_SCHEMA,
@@ -43,7 +44,8 @@ import {
   lucideChevronRight,
   lucideChevronDown,
   lucideMessageSquare,
-  lucideX
+  lucideX,
+  lucideMic
 } from '@ng-icons/lucide';
 
 // Spartan UI Imports
@@ -116,12 +118,13 @@ import { GroupItem } from '../../../services/chat/group.service';
       lucideChevronRight,
       lucideChevronDown,
       lucideMessageSquare,
-      lucideX
+      lucideX,
+      lucideMic
     })
   ],
   templateUrl: './chat-window.component.html'
 })
-export class ChatWindowComponent implements AfterViewChecked {
+export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
   readonly chatService = inject(ChatService);
   readonly callService = inject(CallService);
   private readonly mediaService = inject(MediaService);
@@ -154,6 +157,17 @@ export class ChatWindowComponent implements AfterViewChecked {
   lazyUserFallback = signal<{ name: string; phone?: string; avatar?: string } | null>(null);
 
   quickReactions = ['👍', '❤️', '🔥', '👏', '🎉', '😂', '😮', '😢', '😍', '🤔', '💯', '🙏', '✨', '⚡'];
+
+  // ==========================================
+  // وضعیت و متغیرهای ضبط صدا (Voice Recording)
+  // ==========================================
+  isRecording = signal(false);
+  recordingDuration = signal('00:00');
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private recordingTimer: any = null;
+  private recordingStartTime = 0;
+  private audioStream: MediaStream | null = null;
 
   readonly isNotificationsEnabled = computed(() => {
     const active = this.chatService.activeConversation();
@@ -192,7 +206,7 @@ export class ChatWindowComponent implements AfterViewChecked {
     const activeName = activeChat?.name || lazyUser?.name || 'Unknown';
 
     return {
-      id: this.targetUserId(), // ارسال شناسه کاربر برای فچ کردن گروه‌های مشترک
+      id: this.targetUserId(),
       name: activeName,
       phone: activeChat?.phoneNumber || lazyUser?.phone,
       avatar: activeChat?.avatar || lazyUser?.avatar,
@@ -230,7 +244,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     });
   }
 
-  // استخراج تصاویر اشتراک‌گذاری شده از پیام‌های کنونی روم
   readonly chatPhotos = computed<string[]>(() => {
     const msgs = this.chatService.currentMessages() || [];
     const photos: string[] = [];
@@ -247,7 +260,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     return photos;
   });
 
-  // استخراج ویدیوهای اشتراک‌گذاری شده از پیام‌ها
   readonly chatVideos = computed<VideoItem[]>(() => {
     const msgs = this.chatService.currentMessages() || [];
     const videos: VideoItem[] = [];
@@ -267,7 +279,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     return videos;
   });
 
-  // استخراج فایل‌ها و اسناد متفرقه از پیام‌ها
   readonly chatFiles = computed<FileItem[]>(() => {
     const msgs = this.chatService.currentMessages() || [];
     const files: FileItem[] = [];
@@ -432,6 +443,117 @@ export class ChatWindowComponent implements AfterViewChecked {
     }
   }
 
+  // ==========================================
+  // متدهای اختصاصی ضبط و ارسال پیام صوتی
+  // ==========================================
+  async startRecording(): Promise<void> {
+    try {
+      this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // انتخاب خودکار بهترین MimeType پشتیبانی‌شده توسط کلاینت
+      let mimeType = 'audio/webm';
+      let extension = 'webm';
+
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+        extension = 'webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus';
+        extension = 'ogg';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+        extension = 'mp4';
+      }
+
+      this.mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
+      this.audioChunks = [];
+
+      this.mediaRecorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data && e.data.size > 0) {
+          this.audioChunks.push(e.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        const shouldSend = this.isRecording();
+        const recordedChunks = [...this.audioChunks];
+
+        // پاکسازی اتصالات سخت‌افزاری و تایمر
+        this.cleanupRecordingResources();
+
+        if (shouldSend && recordedChunks.length > 0) {
+          const audioBlob = new Blob(recordedChunks, { type: mimeType });
+          // ساخت یک File استاندارد و نام‌گذاری با پسوند مناسب
+          const audioFile = new File([audioBlob], `voice_${Date.now()}.${extension}`, {
+            type: mimeType
+          });
+
+          // ارسال مستقیم به همان پایپ‌لاین آپلود فایل و مدیا
+          await this.handleFileSend({
+            files: [audioFile],
+            caption: '',
+            type: 'audio'
+          });
+        }
+      };
+
+      // دریافت داده‌ها در تکه‌های 200 میلی‌ثانیه‌ای
+      this.mediaRecorder.start(200);
+      this.isRecording.set(true);
+      this.startRecordingTimer();
+
+    } catch (err) {
+      console.error('Microphone access denied or recording failed:', err);
+      this.cleanupRecordingResources();
+    }
+  }
+
+  stopAndSendRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+  }
+
+  cancelRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.isRecording.set(false); // فلگ ارسال غیرفعال می‌شود تا onstop آن را بفرستد
+      this.mediaRecorder.stop();
+    } else {
+      this.cleanupRecordingResources();
+    }
+  }
+
+
+  private startRecordingTimer(): void {
+    this.recordingStartTime = Date.now();
+    this.recordingDuration.set('00:00');
+
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+    }
+
+    this.recordingTimer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+      const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+      const seconds = (elapsed % 60).toString().padStart(2, '0');
+      this.recordingDuration.set(`${minutes}:${seconds}`);
+    }, 1000);
+  }
+
+  private cleanupRecordingResources(): void {
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream = null;
+    }
+    this.isRecording.set(false);
+    this.recordingDuration.set('00:00');
+    this.audioChunks = [];
+  }
+
   onReply(msg: Message) {
     this.chatService.setReplyTo(msg);
   }
@@ -567,7 +689,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     });
   }
 
-  // انتخاب گروه مشترک و تغییر گفتگوی فعال
   onGroupSelected(group: GroupItem): void {
     const targetRoomId = group?.id || (group as any)?._id;
     if (!targetRoomId) return;
@@ -736,5 +857,9 @@ export class ChatWindowComponent implements AfterViewChecked {
 
   isVideoMedia(item: MessageMediaItem | any): boolean {
     return !!item?.type?.toLowerCase().startsWith('video/');
+  }
+
+  ngOnDestroy(): void {
+    this.cleanupRecordingResources();
   }
 }

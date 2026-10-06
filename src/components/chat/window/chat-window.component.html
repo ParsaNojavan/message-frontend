@@ -719,6 +719,7 @@
     <footer
         class="w-full p-2.5 sm:p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 relative shrink-0 min-w-0 z-20">
 
+        @if (!isRecording()) {
         <!-- Attachment Button & Popup Menu -->
         <div class="relative flex items-center shrink-0" id="attachment-wrapper">
             <input #mediaInput type="file" accept="image/*,video/*" multiple class="hidden"
@@ -802,11 +803,52 @@
             }
         </div>
 
-        <!-- Send Button -->
-        <button (click)="send()" [disabled]="!messageText.trim()"
-            class="size-9 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer">
+        <!-- Action Button: Send if text exists, otherwise Mic -->
+        @if (messageText.trim().length > 0) {
+        <button (click)="send()"
+            class="size-9 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer">
             <ng-icon name="lucideSend" class="text-sm"></ng-icon>
         </button>
+        } @else {
+        <button type="button" (click)="startRecording()" title="Record voice"
+            class="size-9 rounded-full text-zinc-500 hover:text-emerald-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-emerald-400 dark:hover:bg-zinc-800 flex items-center justify-center transition-all shrink-0 cursor-pointer">
+            <ng-icon name="lucideMic" class="text-lg"></ng-icon>
+        </button>
+        }
+
+        } @else {
+        <!-- Recording Mode Bar -->
+        <div
+            class="flex-1 flex items-center justify-between bg-zinc-100 dark:bg-zinc-800/80 rounded-xl px-4 py-2 border border-emerald-500/30">
+            <!-- Indicator & Timer -->
+            <div class="flex items-center gap-3">
+                <div class="relative flex items-center justify-center size-3.5">
+                    <div class="absolute size-full bg-red-500 rounded-full animate-ping opacity-75"></div>
+                    <div class="relative size-2 bg-red-500 rounded-full"></div>
+                </div>
+                <span class="text-zinc-900 dark:text-zinc-100 font-mono text-sm font-medium" dir="ltr">
+                    {{ recordingDuration() }}
+                </span>
+                <span class="text-zinc-500 dark:text-zinc-400 text-xs hidden sm:inline-block">Recording audio...</span>
+            </div>
+
+            <!-- Cancel and Send Controls -->
+            <div class="flex items-center gap-1.5">
+                <button type="button" (click)="cancelRecording()"
+                    class="size-8 rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center transition-colors cursor-pointer"
+                    title="Cancel">
+                    <ng-icon name="lucideTrash2" class="text-base"></ng-icon>
+                </button>
+
+                <button type="button" (click)="stopAndSendRecording()"
+                    class="size-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white shadow-sm flex items-center justify-center transition-all cursor-pointer"
+                    title="Send audio">
+                    <ng-icon name="lucideSend" class="text-xs"></ng-icon>
+                </button>
+            </div>
+        </div>
+        }
+
     </footer>
 
     <app-media-upload-modal #uploadModal (fileSent)="handleFileSend($event)">
