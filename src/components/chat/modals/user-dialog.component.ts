@@ -5,7 +5,9 @@ import {
   Input,
   Output,
   inject,
-  signal
+  signal,
+  OnChanges,
+  SimpleChanges
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
@@ -32,7 +34,7 @@ import { GroupService, GroupItem } from '../../../services/chat/group.service';
 export type TabType = 'photos' | 'videos' | 'files' | 'groups';
 
 export interface UserProfileData {
-  id?: string; // شناسه کاربر هدف برای ارسال به اندپوینت
+  id?: string;
   name: string;
   phone?: string;
   bio?: string;
@@ -45,12 +47,34 @@ export interface UserProfileData {
 
 export interface VideoItem {
   thumbnail: string;
+  url?: string;
   duration?: string;
 }
 
 export interface FileItem {
   name: string;
-  size: string;
+  size?: string;
+  url?: string;
+}
+
+export interface CommonGroupResponseItem {
+  _id: string;
+  name: string;
+  avatar?: string | null;
+  type: string;
+  createdAt?: string;
+  updatedAt?: string;
+  membersCount?: number;
+}
+
+export interface CommonGroupsApiResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: {
+    items: CommonGroupResponseItem[];
+    nextCursor: string | null;
+  };
 }
 
 @Component({
@@ -89,20 +113,20 @@ export interface FileItem {
         type="button"
         class="flex items-center gap-3 text-left group cursor-pointer focus:outline-none select-none p-1 rounded-lg">
         <hlm-avatar class="size-10 shrink-0">
-          @if (user?.avatar) {
+          @if (user.avatar) {
             <img hlmAvatarImage [src]="user.avatar" [alt]="user.name" />
           }
-          <span hlmAvatarFallback [class]="user?.avatarColor || 'bg-emerald-600 text-white'" class="font-bold text-sm">
-            {{ getInitials(user?.name) }}
+          <span hlmAvatarFallback [class]="user.avatarColor || 'bg-emerald-600 text-white'" class="font-bold text-sm">
+            {{ getInitials(user.name) }}
           </span>
         </hlm-avatar>
 
         <div class="flex flex-col min-w-0">
           <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {{ user?.name }}
+            {{ user.name }}
           </h3>
           <span class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-            {{ user?.isOnline ? 'online' : (user?.lastSeen || 'last seen recently') }}
+            {{ user.isOnline ? 'online' : (user.lastSeen || 'last seen recently') }}
           </span>
         </div>
       </button>
@@ -139,20 +163,20 @@ export interface FileItem {
           <div class="px-6 py-5 border-b border-zinc-200/70 dark:border-zinc-800/70 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/20 shrink-0">
             <div class="flex items-center gap-4 min-w-0">
               <hlm-avatar class="size-16 ring-2 ring-emerald-500/20 shrink-0">
-                @if (user?.avatar) {
+                @if (user.avatar) {
                   <img hlmAvatarImage [src]="user.avatar" [alt]="user.name" />
                 }
-                <span hlmAvatarFallback [class]="user?.avatarColor || 'bg-emerald-600 text-white'" class="font-bold text-2xl">
-                  {{ getInitials(user?.name) }}
+                <span hlmAvatarFallback [class]="user.avatarColor || 'bg-emerald-600 text-white'" class="font-bold text-2xl">
+                  {{ getInitials(user.name) }}
                 </span>
               </hlm-avatar>
 
               <div class="flex flex-col min-w-0">
                 <span class="font-bold text-lg text-zinc-900 dark:text-zinc-100 leading-snug truncate">
-                  {{ user?.name }}
+                  {{ user.name }}
                 </span>
                 <span class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 truncate">
-                  {{ user?.isOnline ? 'Online' : (user?.lastSeen || 'Last seen recently') }}
+                  {{ user.isOnline ? 'Online' : (user.lastSeen || 'Last seen recently') }}
                 </span>
               </div>
             </div>
@@ -168,9 +192,9 @@ export interface FileItem {
 
           <!-- Contact Details & Settings -->
           <div class="p-3 border-b border-zinc-200/70 dark:border-zinc-800/70 space-y-1 shrink-0">
-            @if (user?.phone) {
+            @if (user.phone) {
               <div 
-                (click)="copyPhone(user?.phone)"
+                (click)="copyPhone(user.phone)"
                 class="flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer group">
                 <div class="flex items-center gap-3">
                   <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
@@ -178,7 +202,7 @@ export interface FileItem {
                   </div>
                   <div>
                     <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" dir="ltr">
-                      {{ user?.phone }}
+                      {{ user.phone }}
                     </div>
                     <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Phone</div>
                   </div>
@@ -220,9 +244,9 @@ export interface FileItem {
             </div>
 
             <!-- Bio Section -->
-            @if (user?.bio) {
+            @if (user.bio) {
               <div 
-                (click)="copyBio(user?.bio)"
+                (click)="copyBio(user.bio)"
                 class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-colors group">
                 <div class="flex items-center gap-3 min-w-0 pr-2">
                   <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors">
@@ -230,7 +254,7 @@ export interface FileItem {
                   </div>
                   <div class="min-w-0">
                     <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100 break-words transition-colors">
-                      {{ user?.bio }}
+                      {{ user.bio }}
                     </div>
                     <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Bio</div>
                   </div>
@@ -335,16 +359,15 @@ export interface FileItem {
             @if (activeTab() === 'groups') {
               <div class="flex-1 flex flex-col justify-between">
                 @if (isLoadingGroups() && groups().length === 0) {
-                  <!-- Loading Skeleton / Spinner -->
                   <div class="flex-1 flex flex-col items-center justify-center gap-2 py-10 text-zinc-400">
                     <ng-icon name="lucideLoader2" class="text-2xl animate-spin text-emerald-500"></ng-icon>
                     <span class="text-xs">Loading common groups...</span>
                   </div>
                 } @else if (groups().length > 0) {
                   <div class="space-y-2">
-                    @for (group of groups(); track (group.id || group.name)) {
+                    @for (group of groups(); track group.id || group.name) {
                       <div 
-                        (click)="onGroupSelected(group)"
+                        (click)="onGroupSelected(group, ctx)"
                         class="flex items-center gap-3 p-2.5 bg-zinc-100/60 dark:bg-zinc-800/40 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors">
                         <hlm-avatar class="size-9">
                           @if (group.avatar) {
@@ -356,7 +379,9 @@ export interface FileItem {
                         </hlm-avatar>
                         <div class="flex-1 min-w-0">
                           <p class="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ group.name }}</p>
-                          <span class="text-[10px] text-zinc-500 dark:text-zinc-400">{{ group.membersCount }} members</span>
+                          <span class="text-[10px] text-zinc-500 dark:text-zinc-400">
+                            {{ group.membersCount ? (group.membersCount + ' members') : 'Group' }}
+                          </span>
                         </div>
                       </div>
                     }
@@ -391,41 +416,58 @@ export interface FileItem {
     </hlm-dialog>
   `
 })
-export class UserProfileModalComponent {
+export class UserProfileModalComponent implements OnChanges {
   private readonly groupService = inject(GroupService);
 
   @Input({ required: true }) user: UserProfileData = {
     id: '',
-    name: 'Mom',
-    phone: '+98 914 419 0723',
-    bio: 'Hey there! I am using this app.',
+    name: 'User',
+    phone: '',
+    bio: '',
     isOnline: false,
-    lastSeen: 'last seen Wednesday at 18:00',
+    lastSeen: 'last seen recently',
     notificationsEnabled: true,
     avatarColor: 'bg-emerald-600 text-white'
   };
 
-  @Input() photos: string[] = [
-    'https://picsum.photos/300/300?random=11',
-    'https://picsum.photos/300/300?random=12',
-    'https://picsum.photos/300/300?random=13'
-  ];
+  @Input() photos: string[] = [];
   @Input() videos: VideoItem[] = [];
   @Input() files: FileItem[] = [];
 
-  // گروه‌های مشترک با سیگنال مدیریت می‌شوند
   readonly groups = signal<GroupItem[]>([]);
   readonly isLoadingGroups = signal(false);
   readonly nextCursor = signal<string | null>(null);
   private hasLoadedGroupsOnce = false;
 
-  @Output() chatClicked = new EventEmitter<void>();
+  @Output() groupClick = new EventEmitter<GroupItem>();
   @Output() groupClicked = new EventEmitter<GroupItem>();
+
+  @Output() directChatClick = new EventEmitter<void>();
+  @Output() chatClicked = new EventEmitter<void>();
+
+  @Output() notificationsToggle = new EventEmitter<boolean>();
   @Output() notificationsToggled = new EventEmitter<boolean>();
 
   readonly activeTab = signal<TabType>('photos');
   readonly copiedPhone = signal(false);
   readonly copiedBio = signal(false);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['user']) {
+      const prevId = changes['user'].previousValue?.id;
+      const curId = changes['user'].currentValue?.id;
+
+      if (prevId !== curId) {
+        this.groups.set([]);
+        this.nextCursor.set(null);
+        this.hasLoadedGroupsOnce = false;
+
+        if (this.activeTab() === 'groups' && curId) {
+          this.fetchCommonGroups();
+        }
+      }
+    }
+  }
 
   get isMuted(): boolean {
     return this.user?.notificationsEnabled === false;
@@ -450,20 +492,27 @@ export class UserProfileModalComponent {
   fetchCommonGroups(cursor?: string): void {
     const targetUserId = this.user?.id;
     if (!targetUserId) {
-      console.warn('Target userId is required to fetch common rooms.');
+      console.warn('Target userId is missing; cannot fetch common groups.');
       return;
     }
 
     this.isLoadingGroups.set(true);
 
     this.groupService.getCommonGroups(targetUserId, cursor, 20).subscribe({
-      next: (res) => {
-        // بسته به اینکه پاسخ بک‌اند { items: [] } باشد یا مستقیماً آرایه:
-        const incomingItems = Array.isArray(res) ? res : (res.items || []);
-        const cursor = Array.isArray(res) ? null : (res.nextCursor || null);
+      next: (res: CommonGroupsApiResponse | any) => {
+        const rawItems: CommonGroupResponseItem[] = res?.data?.items || [];
+        const next: string | null = res?.data?.nextCursor ?? null;
 
-        this.groups.update((current) => [...current, ...incomingItems]);
-        this.nextCursor.set(cursor);
+        const incomingItems: GroupItem[] = rawItems.map((item: any) => ({
+          ...item,
+          id: item.id || item._id,
+          avatar: item.avatar || undefined,
+          membersCount: item.membersCount ?? 0
+        }));
+
+
+        this.groups.update((current) => cursor ? [...current, ...incomingItems] : incomingItems);
+        this.nextCursor.set(next);
         this.hasLoadedGroupsOnce = true;
         this.isLoadingGroups.set(false);
       },
@@ -481,8 +530,10 @@ export class UserProfileModalComponent {
     }
   }
 
-  onGroupSelected(group: GroupItem): void {
+  onGroupSelected(group: GroupItem, ctx: any): void {
+    this.groupClick.emit(group);
     this.groupClicked.emit(group);
+    ctx.close();
   }
 
   toggleNotifications(): void {
@@ -490,10 +541,12 @@ export class UserProfileModalComponent {
     if (this.user) {
       this.user.notificationsEnabled = !nextMutedState;
     }
+    this.notificationsToggle.emit(nextMutedState);
     this.notificationsToggled.emit(nextMutedState);
   }
 
   onStartChat(ctx: any): void {
+    this.directChatClick.emit();
     this.chatClicked.emit();
     ctx.close();
   }
@@ -517,6 +570,7 @@ export class UserProfileModalComponent {
     return name
       .trim()
       .split(' ')
+      .filter(Boolean)
       .map(part => part[0])
       .join('')
       .toUpperCase()

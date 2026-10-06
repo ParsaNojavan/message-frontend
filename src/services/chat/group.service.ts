@@ -23,7 +23,7 @@ export class GroupService {
   private readonly http = inject(HttpClient);
   
   // آدرس پایه کنترلر گروه در بک‌اند (با توجه به environment یا پیش‌فرض)
-  private readonly baseUrl = `http://localhost:3000/chat/groups`;
+  private readonly baseUrl = `http://localhost:3000/chat/group`;
 
   /**
    * دریافت گروه‌های مشترک با یک کاربر مشخص بر اساس Cursor Pagination
