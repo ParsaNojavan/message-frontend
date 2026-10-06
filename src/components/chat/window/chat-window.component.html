@@ -12,10 +12,11 @@
             </button>
             @if (selectedUser()) {
             <div class="min-w-0 flex-1">
-                <app-user-profile-modal [user]="selectedUser()" [photos]="chatPhotos()" [videos]="chatVideos()"
-                    [files]="chatFiles()" [groups]="commonGroups()" (chatClicked)="onDirectChatClicked()"
-                    (notificationsToggled)="onNotificationsToggled($event)">
+                <app-user-profile-modal #profileModal [user]="selectedUser()" [photos]="chatPhotos()"
+                    [videos]="chatVideos()" [files]="chatFiles()" (directChatClick)="onDirectChatClicked()"
+                    (groupClick)="onGroupSelected($event)" (notificationsToggle)="onNotificationsToggled($event)">
                 </app-user-profile-modal>
+
             </div>
             }
         </div>
@@ -174,14 +175,15 @@
 
                         <div class="mb-1.5 space-y-1.5 overflow-hidden rounded-xl max-w-full">
 
-                                                        <!-- 1. Visual Media Gallery (Images / Videos) Up to 9 Support -->
+                            <!-- 1. Visual Media Gallery (Images / Videos) Up to 9 Support -->
                             @if (visuals.length > 0) {
                             <div class="overflow-hidden rounded-xl w-full bg-black/5 dark:bg-black/20">
 
                                 <!-- 1 Item -->
                                 @if (visuals.length === 1) {
                                 @let item = visuals[0];
-                                <div class="relative w-full max-h-80 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                <div
+                                    class="relative w-full max-h-80 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                     @if (item.type.startsWith('image/')) {
                                     <a [href]="item.url" target="_blank" class="block w-full h-full">
                                         <img [src]="item.url"
@@ -198,7 +200,8 @@
                                 @if (visuals.length === 2) {
                                 <div class="grid grid-cols-2 gap-1 w-full">
                                     @for (item of visuals; track item.url) {
-                                    <div class="relative h-44 sm:h-52 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative h-44 sm:h-52 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (item.type.startsWith('image/')) {
                                         <a [href]="item.url" target="_blank" class="block w-full h-full">
                                             <img [src]="item.url"
@@ -206,7 +209,8 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="item.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
                                     </div>
                                     }
@@ -217,7 +221,8 @@
                                 @if (visuals.length === 3) {
                                 <div class="flex flex-col gap-1 w-full">
                                     @let first = visuals[0];
-                                    <div class="relative w-full h-44 sm:h-52 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative w-full h-44 sm:h-52 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (first.type.startsWith('image/')) {
                                         <a [href]="first.url" target="_blank" class="block w-full h-full">
                                             <img [src]="first.url"
@@ -225,12 +230,14 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="first.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="first.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
                                     </div>
                                     <div class="grid grid-cols-2 gap-1 w-full">
                                         @for (item of visuals.slice(1, 3); track item.url) {
-                                        <div class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -238,7 +245,8 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
@@ -250,7 +258,8 @@
                                 @if (visuals.length === 4) {
                                 <div class="grid grid-cols-2 gap-1 w-full">
                                     @for (item of visuals; track item.url) {
-                                    <div class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (item.type.startsWith('image/')) {
                                         <a [href]="item.url" target="_blank" class="block w-full h-full">
                                             <img [src]="item.url"
@@ -258,7 +267,8 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="item.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
                                     </div>
                                     }
@@ -270,7 +280,8 @@
                                 <div class="flex flex-col gap-1 w-full">
                                     <div class="grid grid-cols-2 gap-1 w-full">
                                         @for (item of visuals.slice(0, 2); track item.url) {
-                                        <div class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-36 sm:h-40 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -278,14 +289,16 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
                                     </div>
                                     <div class="grid grid-cols-3 gap-1 w-full">
                                         @for (item of visuals.slice(2, 5); track item.url) {
-                                        <div class="relative h-28 sm:h-32 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-28 sm:h-32 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -293,7 +306,8 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
@@ -305,7 +319,8 @@
                                 @if (visuals.length === 6) {
                                 <div class="grid grid-cols-3 gap-1 w-full">
                                     @for (item of visuals; track item.url) {
-                                    <div class="relative h-28 sm:h-32 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative h-28 sm:h-32 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (item.type.startsWith('image/')) {
                                         <a [href]="item.url" target="_blank" class="block w-full h-full">
                                             <img [src]="item.url"
@@ -313,7 +328,8 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="item.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
                                     </div>
                                     }
@@ -324,7 +340,8 @@
                                 @if (visuals.length === 7) {
                                 <div class="flex flex-col gap-1 w-full">
                                     @let top = visuals[0];
-                                    <div class="relative w-full h-36 sm:h-40 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative w-full h-36 sm:h-40 overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (top.type.startsWith('image/')) {
                                         <a [href]="top.url" target="_blank" class="block w-full h-full">
                                             <img [src]="top.url"
@@ -332,12 +349,14 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="top.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="top.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
                                     </div>
                                     <div class="grid grid-cols-3 gap-1 w-full">
                                         @for (item of visuals.slice(1, 7); track item.url) {
-                                        <div class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -345,7 +364,8 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
@@ -358,7 +378,8 @@
                                 <div class="flex flex-col gap-1 w-full">
                                     <div class="grid grid-cols-2 gap-1 w-full">
                                         @for (item of visuals.slice(0, 2); track item.url) {
-                                        <div class="relative h-32 sm:h-36 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-32 sm:h-36 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -366,14 +387,16 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
                                     </div>
                                     <div class="grid grid-cols-3 gap-1 w-full">
                                         @for (item of visuals.slice(2, 8); track item.url) {
-                                        <div class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                        <div
+                                            class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                             @if (item.type.startsWith('image/')) {
                                             <a [href]="item.url" target="_blank" class="block w-full h-full">
                                                 <img [src]="item.url"
@@ -381,7 +404,8 @@
                                                     alt="Photo" loading="lazy" />
                                             </a>
                                             } @else {
-                                            <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                            <video [src]="item.url" controls
+                                                class="w-full h-full object-cover block"></video>
                                             }
                                         </div>
                                         }
@@ -393,7 +417,8 @@
                                 @if (visuals.length >= 9) {
                                 <div class="grid grid-cols-3 gap-1 w-full">
                                     @for (item of visuals.slice(0, 9); track item.url; let idx = $index) {
-                                    <div class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
+                                    <div
+                                        class="relative h-24 sm:h-28 w-full overflow-hidden group/media bg-zinc-200 dark:bg-zinc-800">
                                         @if (item.type.startsWith('image/')) {
                                         <a [href]="item.url" target="_blank" class="block w-full h-full">
                                             <img [src]="item.url"
@@ -401,7 +426,8 @@
                                                 alt="Photo" loading="lazy" />
                                         </a>
                                         } @else {
-                                        <video [src]="item.url" controls class="w-full h-full object-cover block"></video>
+                                        <video [src]="item.url" controls
+                                            class="w-full h-full object-cover block"></video>
                                         }
 
                                         <!-- Overlay on the 9th item only if total > 9 -->
@@ -442,7 +468,8 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-xs font-semibold block truncate">فایل پیوست</span>
-                                    <span class="text-[10px] opacity-75 uppercase">{{ item.type.split('/')[1] || 'FILE' }}</span>
+                                    <span class="text-[10px] opacity-75 uppercase">{{ item.type.split('/')[1] || 'FILE'
+                                        }}</span>
                                 </div>
                             </a>
                             }
@@ -453,7 +480,8 @@
                         <!-- Message Text + Time Badge with Safe Wrapping -->
                         <div class="w-full px-1 break-words [overflow-wrap:anywhere] [word-break:break-word]">
                             @if (msg.content) {
-                            <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.content }}</span>
+                            <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.content
+                                }}</span>
                             }
 
                             <!-- Meta Timestamp & Tick -->
@@ -739,7 +767,8 @@
 
         <!-- Input Box & Emoji Trigger -->
         <div class="flex-1 relative flex items-center min-w-0" id="emoji-wrapper">
-            <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..." dir="auto"
+            <input type="text" [(ngModel)]="messageText" (keyup.enter)="send()" placeholder="Type a message..."
+                dir="auto"
                 class="w-full bg-zinc-100 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 text-sm rounded-xl py-2 pl-3.5 pr-10 border border-zinc-200 dark:border-zinc-800 focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
 
             <button type="button" (click)="toggleEmojiMenu($event)"
@@ -761,7 +790,8 @@
                     <button type="button" (click)="activeTab = 'emoji'"
                         class="relative py-2 text-xs font-semibold uppercase tracking-wider"
                         [class.text-emerald-600]="activeTab === 'emoji'"
-                        [class.dark:text-emerald-400]="activeTab === 'emoji'" [class.text-zinc-500]="activeTab !== 'emoji'">
+                        [class.dark:text-emerald-400]="activeTab === 'emoji'"
+                        [class.text-zinc-500]="activeTab !== 'emoji'">
                         EMOJI
                         @if (activeTab === 'emoji') {
                         <span class="absolute bottom-0 inset-x-0 h-0.5 bg-emerald-500 rounded-full"></span>

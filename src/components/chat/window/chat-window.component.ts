@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../services/chat/chat.service';
 import { AuthService } from '../../../services/auth/auth.service';
-import { MediaService, MediaUploadResponse } from '../../../services/media/media.service'; // مسیر قرارگیری مدیا سرویس
+import { MediaService, MediaUploadResponse } from '../../../services/media/media.service';
 import { provideIcons, NgIconComponent } from '@ng-icons/core';
 import 'emoji-picker-element';
 
@@ -162,12 +162,37 @@ export class ChatWindowComponent implements AfterViewChecked {
     return isNaN(mutedDate.getTime()) || mutedDate.getTime() <= Date.now();
   });
 
+  // استخراج هوشمند شناسه کاربر مقابل
+  readonly targetUserId = computed<string>(() => {
+    if (this.lazyUserId) return this.lazyUserId;
+
+    const activeChat: any = this.chatService.activeConversation();
+    if (!activeChat) return '';
+
+    if (activeChat.targetUserId) return String(activeChat.targetUserId);
+    if (activeChat.partnerId) return String(activeChat.partnerId);
+    if (activeChat.userId) return String(activeChat.userId);
+
+    if (Array.isArray(activeChat.participants)) {
+      const partner = activeChat.participants.find((p: any) => {
+        const pId = String(p?._id || p?.id || p);
+        return pId && pId !== this.currentUserId;
+      });
+      if (partner) {
+        return String(partner._id || partner.id || partner);
+      }
+    }
+
+    return '';
+  });
+
   selectedUser = computed<UserProfileData>(() => {
     const activeChat = this.chatService.activeConversation();
     const lazyUser = this.lazyUserFallback();
     const activeName = activeChat?.name || lazyUser?.name || 'Unknown';
 
     return {
+      id: this.targetUserId(), // ارسال شناسه کاربر برای فچ کردن گروه‌های مشترک
       name: activeName,
       phone: activeChat?.phoneNumber || lazyUser?.phone,
       avatar: activeChat?.avatar || lazyUser?.avatar,
@@ -205,13 +230,63 @@ export class ChatWindowComponent implements AfterViewChecked {
     });
   }
 
-  chatPhotos = signal<string[]>([
-    'https://shut.ir/storage/image/2026/9/11/%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%AA%D8%B5%D9%88%DB%8C%D8%B1-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D8%AF%D8%AE%D8%AA%D8%B1%D8%A7%D9%86%D9%87-%D8%AE%D8%A7%D8%B5-%D9%88-%D8%AC%D8%AF%DB%8C%D8%AF.webp'
-  ]);
+  // استخراج تصاویر اشتراک‌گذاری شده از پیام‌های کنونی روم
+  readonly chatPhotos = computed<string[]>(() => {
+    const msgs = this.chatService.currentMessages() || [];
+    const photos: string[] = [];
 
-  chatVideos = signal<VideoItem[]>([]);
-  chatFiles = signal<FileItem[]>([]);
-  commonGroups = signal<GroupItem[]>([]);
+    for (const msg of msgs) {
+      if (msg.media && Array.isArray(msg.media)) {
+        for (const m of msg.media) {
+          if (m.type?.toLowerCase().startsWith('image/') && m.url) {
+            photos.push(m.url);
+          }
+        }
+      }
+    }
+    return photos;
+  });
+
+  // استخراج ویدیوهای اشتراک‌گذاری شده از پیام‌ها
+  readonly chatVideos = computed<VideoItem[]>(() => {
+    const msgs = this.chatService.currentMessages() || [];
+    const videos: VideoItem[] = [];
+
+    for (const msg of msgs) {
+      if (msg.media && Array.isArray(msg.media)) {
+        for (const m of msg.media) {
+          if (m.type?.toLowerCase().startsWith('video/') && m.url) {
+            videos.push({
+              thumbnail: m.url,
+              duration: '0:00'
+            });
+          }
+        }
+      }
+    }
+    return videos;
+  });
+
+  // استخراج فایل‌ها و اسناد متفرقه از پیام‌ها
+  readonly chatFiles = computed<FileItem[]>(() => {
+    const msgs = this.chatService.currentMessages() || [];
+    const files: FileItem[] = [];
+
+    for (const msg of msgs) {
+      if (msg.media && Array.isArray(msg.media)) {
+        for (const m of msg.media) {
+          const type = m.type?.toLowerCase() || '';
+          if (!type.startsWith('image/') && !type.startsWith('video/') && !type.startsWith('audio/') && m.url) {
+            files.push({
+              name: (m as any).name || m.url.split('/').pop() || 'Document',
+              size: (m as any).size ? `${((m as any).size / 1024).toFixed(1)} KB` : ''
+            });
+          }
+        }
+      }
+    }
+    return files;
+  });
 
   getUserDisplayName(user?: MessageUserDetail | any | null, fallback = 'کاربر'): string {
     if (!user) return fallback;
@@ -492,6 +567,18 @@ export class ChatWindowComponent implements AfterViewChecked {
     });
   }
 
+  // انتخاب گروه مشترک و تغییر گفتگوی فعال
+  onGroupSelected(group: GroupItem): void {
+    const targetRoomId = group?.id || (group as any)?._id;
+    if (!targetRoomId) return;
+
+    this.chatService.setActiveConversation(targetRoomId);
+    this.router.navigate([], {
+      queryParams: { id: targetRoomId },
+      replaceUrl: true
+    });
+  }
+
   onDirectChatClicked() {
     console.log('Direct chat initiated from profile dialog');
   }
@@ -537,7 +624,6 @@ export class ChatWindowComponent implements AfterViewChecked {
     this.isUploadingMedia.set(true);
 
     try {
-      // ۱. بررسی و ایجاد Room در صورت چت lazy
       let currentRoomId = this.chatService.activeConversationId();
       if (!currentRoomId && this.lazyUserId) {
         const roomResponse: any = await firstValueFrom(this.chatService.startDirectChat(this.lazyUserId));
@@ -552,7 +638,6 @@ export class ChatWindowComponent implements AfterViewChecked {
         return;
       }
 
-      // ۲. آپلود از طریق MediaService و تبدیل پاسخ به مدل MessageMediaItem
       const uploadPromises = files.map(async (file) => {
         const response: MediaUploadResponse = await firstValueFrom(this.mediaService.upload(file));
         const mediaEntity = response.data;
@@ -568,12 +653,10 @@ export class ChatWindowComponent implements AfterViewChecked {
 
       const mediaList: MessageMediaItem[] = await Promise.all(uploadPromises);
 
-      // ۳. ارسال پیام نهایی حاوی رسانه‌ها به چت سرویس
       this.chatService.sendMessage(caption || '', mediaList);
 
       setTimeout(() => this.scrollToBottom('smooth'), 60);
 
-      // ۴. به‌روزرسانی URL مرورگر در صورت lazyUser
       if (this.lazyUserId && currentRoomId) {
         this.router.navigate([], {
           queryParams: { id: currentRoomId },
