@@ -60,6 +60,7 @@ import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
 import { AddContactDialogComponent, NewContactData } from '../modals/add-contact-dialog.component';
 import { ConversationFilter, RecentContact, SearchResultItem } from '../../../models/conversation.model';
 import { Contact } from '../../../models/contact.model';
+import { formatChatTime } from '../../../../libs/utils/format-date'
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -130,6 +131,7 @@ export class ChatSidebarComponent implements OnInit {
 
   // پروفایل و وضعیت کاربر
   readonly currentUser = this.authService.userProfile;
+  readonly formatChatTime = formatChatTime;
 
   readonly userDisplayName = computed(() => {
     const user = this.currentUser();

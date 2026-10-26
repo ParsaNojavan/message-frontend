@@ -1,5 +1,20 @@
 export type ConversationType = 'DM' | 'GROUP' | 'CHANNEL';
 export type ConversationFilter = 'ALL' | ConversationType;
+export interface RoomUserDetail {
+  _id: string;
+  phoneNumber?: string;
+  bio?: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  photoUrl?: string;
+}
+
+export interface RoomLastMessage {
+  content: string;
+  createdAt: string;
+  sender?: RoomUserDetail | null;
+}
 
 export interface Conversation {
   id: string | number;
@@ -11,8 +26,13 @@ export interface Conversation {
   unreadCount?: number;
   isOnline?: boolean;
   bio?: string;
-  phoneNumber?: string
+  phoneNumber?: string;
   mutedUntil?: string | Date | null;
+  targetUserId?: string | null;
+  role?: string;
+  joinedAt?: string;
+  lastMessageData?: RoomLastMessage | null;
+  otherUser?: RoomUserDetail | null;
 }
 
 export interface SearchResultItem {
