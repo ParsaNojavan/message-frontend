@@ -140,7 +140,7 @@
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-1">
                     <h4 class="font-semibold text-sm truncate text-zinc-900 dark:text-zinc-100">{{ chat.name }}</h4>
-                    <span class="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">{{ chat.lastMessageTime }}</span>
+                    <span class="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">{{ formatChatTime(chat.lastMessageTime) }}</span>
                 </div>
                 <div class="flex justify-between items-center gap-2">
                     <p class="text-xs text-zinc-500 dark:text-zinc-400 truncate">{{ chat.lastMessage || 'No messages yet' }}</p>

@@ -25,7 +25,7 @@ export class ChatService {
   readonly conversations = signal<Conversation[]>([]);
   readonly activeConversationId = signal<string | number | null>(null);
   readonly messages = signal<Record<string | number, Message[]>>({});
-  
+
   // نگه‌داشتن پیام والد در حال ریپلای
   readonly replyingToMessage = signal<Message | null>(null);
 
@@ -77,13 +77,13 @@ export class ChatService {
    */
   private normalizeReply(rawReply: any): MessageReply | null {
     if (!rawReply) return null;
-    
+
     // در صورتی که فقط شناسه ریپلای ارسال شده باشد
     if (typeof rawReply === 'string' || typeof rawReply === 'number') {
-      return { 
+      return {
         id: String(rawReply),
-        _id: String(rawReply), 
-        content: 'پیام ارجاع‌شده' 
+        _id: String(rawReply),
+        content: 'پیام ارجاع‌شده'
       };
     }
 
@@ -202,7 +202,8 @@ export class ChatService {
           }
 
           const userIds = rooms
-            .map(room => room.targetUserId || room.otherUser?.id || room.otherUser?._id)
+            .filter(r => r.type === 'DM')
+            .map(r => r.targetUserId || r.otherUser?._id || r.otherUser?.id)
             .filter(Boolean)
             .map(id => String(id));
 
@@ -230,27 +231,40 @@ export class ChatService {
           );
         }),
         map(({ rooms, statusMap }) => {
-          return rooms.map((room: any) => {
-            const rawTargetId = room.targetUserId || room.otherUser?.id || room.otherUser?._id;
+          return rooms.map((room: any): Conversation => {
+            const rawTargetId = room.targetUserId || room.otherUser?._id || room.otherUser?.id;
             const targetUserId: string | null = rawTargetId ? String(rawTargetId) : null;
             const isOnline = targetUserId ? (statusMap[targetUserId] ?? false) : false;
 
+            let displayName = room.name;
+            if (room.type === 'DM' && room.otherUser) {
+              displayName = `${room.otherUser.firstName || ''} ${room.otherUser.lastName || ''}`.trim() || room.otherUser.username || room.name;
+            } else if (!displayName) {
+              displayName = 'No named chat'
+            }
+
+            const lastMsg = room.lastMessage;
+            const lastMessageText = lastMsg?.content || '';
+            const lastMessageTime = lastMsg?.createdAt || room.joinedAt || '';
+
             return {
               id: room.id || room._id,
-              targetUserId,
-              name: room.otherUser?.firstName
-                ? `${room.otherUser.firstName} ${room.otherUser.lastName || ''}`.trim()
-                : room.name || 'No Name Chat',
-              type: room.type,
-              bio: room.otherUser?.bio,
+              name: displayName,
               avatar: room.otherUser?.photoUrl || room.avatar,
-              lastMessage: room.lastMessage || 'No Messages',
-              lastMessageTime: room.updatedAt || '',
+              type: room.type,
+              lastMessage: lastMessageText,
+              lastMessageTime: lastMessageTime,
+              lastMessageData: lastMsg || null,
               unreadCount: room.unreadCount || 0,
-              phoneNumber: room.otherUser?.phoneNumber || null,
+              isOnline,
+              bio: room.otherUser?.bio,
+              phoneNumber: room.otherUser?.phoneNumber,
               mutedUntil: room.mutedUntil ?? null,
-              isOnline
-            } as Conversation;
+              targetUserId,
+              role: room.role,
+              joinedAt: room.joinedAt,
+              otherUser: room.otherUser || null
+            };
           });
         })
       )
