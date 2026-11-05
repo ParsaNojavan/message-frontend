@@ -67,4 +67,6 @@ export interface Message {
   media?: MessageMediaItem[];
   isForwarded?: boolean;
   isEdited?: boolean;
+  forwardedFromUser?: MessageUserDetail | string | null;
+  forwardedFromRoom?: any;
 }
