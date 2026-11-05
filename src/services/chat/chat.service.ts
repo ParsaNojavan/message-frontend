@@ -127,6 +127,8 @@ export class ChatService {
             reactions: incomingMsg.reactions || [],
             media: incomingMsg.media || [],
             isForwarded: incomingMsg.isForwarded || false,
+            forwardedFromUser: incomingMsg.forwardedFromUser || null, // <--- اضافه شد
+            forwardedFromRoom: incomingMsg.forwardedFromRoom || null, // <--- اضافه شد
             isEdited: incomingMsg.isEdited || false
           };
 
@@ -303,6 +305,8 @@ export class ChatService {
               reactions: (m as any).reactions || [],
               media: (m as any).media || [],
               isForwarded: (m as any).isForwarded || false,
+              forwardedFromUser: (m as any).forwardedFromUser || null, // <--- اضافه شد
+              forwardedFromRoom: (m as any).forwardedFromRoom || null, // <--- اضافه شد
               isEdited: (m as any).isEdited || false
             } as Message;
           });
@@ -321,6 +325,7 @@ export class ChatService {
       });
   }
 
+
   setActiveConversation(id: string | number | null) {
     this.activeConversationId.set(id);
   }
@@ -331,6 +336,19 @@ export class ChatService {
 
   cancelReply() {
     this.replyingToMessage.set(null);
+  }
+
+  sendForwardedMessage(roomId: string, message: string, media: any, originalMsgId: string, forwardedFromUser: string) {
+    const payload = {
+      roomId: roomId,
+      message: message,
+      media: media,
+      isForwarded: true,
+      forwardedFromUser: forwardedFromUser,
+      forwardedFromRoom: originalMsgId
+    };
+
+    this.socketService.emit('room.message', payload);
   }
 
   sendMessage(text: string, media?: MessageMediaItem[]) {

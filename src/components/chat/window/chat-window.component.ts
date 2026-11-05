@@ -8,7 +8,8 @@ import {
   signal,
   HostListener,
   CUSTOM_ELEMENTS_SCHEMA,
-  computed
+  computed,
+  OnInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +17,8 @@ import { ChatService } from '../../../services/chat/chat.service';
 import { AuthService } from '../../../services/auth/auth.service';
 import { MediaService, MediaUploadResponse } from '../../../services/media/media.service';
 import { provideIcons, NgIconComponent } from '@ng-icons/core';
+import { ContactsService } from '../../../services/chat/contacts.service';
+import { Contact } from '../../../models/contact.model';
 import 'emoji-picker-element';
 
 // Lucide Icons
@@ -124,13 +127,14 @@ import { GroupItem } from '../../../services/chat/group.service';
   ],
   templateUrl: './chat-window.component.html'
 })
-export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
+export class ChatWindowComponent implements AfterViewChecked, OnDestroy, OnInit {
   readonly chatService = inject(ChatService);
   readonly callService = inject(CallService);
   private readonly mediaService = inject(MediaService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  readonly contactsService = inject(ContactsService);
 
   messageText = '';
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef<HTMLDivElement>;
@@ -244,6 +248,10 @@ export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
     });
   }
 
+  ngOnInit(): void {
+    this.contactsService.getContacts().subscribe();
+  }
+
   readonly chatPhotos = computed<string[]>(() => {
     const msgs = this.chatService.currentMessages() || [];
     const photos: string[] = [];
@@ -298,6 +306,38 @@ export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
     }
     return files;
   });
+
+
+  // --- Forward Message State ---
+  isForwardModalOpen = signal(false);
+  forwardingMessage = signal<Message | null>(null);
+  forwardSearchQuery = signal('');
+  selectedForwardTargets = signal<Set<string>>(new Set()); // نگهداری contactUserId ها
+  isForwarding = signal(false);
+
+  readonly filteredForwardContacts = computed<Contact[]>(() => {
+    const query = this.forwardSearchQuery().trim().toLowerCase();
+    const list = this.contactsService.contacts() || [];
+    if (!query) return list;
+
+    return list.filter((contact) => {
+      const displayName = this.getContactDisplayName(contact).toLowerCase();
+      const phone = (contact.contactUser?.phoneNumber || '').toLowerCase();
+      return displayName.includes(query) || phone.includes(query);
+    });
+  });
+
+  getContactDisplayName(contact: Contact): string {
+    const customName = `${contact.customFirstName || ''} ${contact.customLastName || ''}`.trim();
+    if (customName) return customName;
+
+    const user = contact.contactUser;
+    if (!user) return 'کاربر';
+
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    return fullName || user.phoneNumber || 'کاربر';
+  }
+
 
   getUserDisplayName(user?: MessageUserDetail | any | null, fallback = 'کاربر'): string {
     if (!user) return fallback;
@@ -574,9 +614,148 @@ export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
     }
   }
 
-  onForward(msg: Message) {
-    console.log('Forward message:', msg);
+  onForward(msg: Message): void {
+    this.openForwardModal(msg);
   }
+
+  openForwardModal(msg: Message): void {
+    this.forwardingMessage.set(msg);
+    this.forwardSearchQuery.set('');
+    this.selectedForwardTargets.set(new Set());
+    this.isForwardModalOpen.set(true);
+    this.contactsService.getContacts().subscribe();
+  }
+
+  closeForwardModal(): void {
+    this.isForwardModalOpen.set(false);
+    this.forwardingMessage.set(null);
+    this.selectedForwardTargets.set(new Set());
+    this.forwardSearchQuery.set('');
+  }
+
+  getForwardedSenderName(msg: Message | any): string {
+    console.log('DEBUG MSG:', msg); 
+    const fromUser = msg?.forwardedFromUser || msg?.forwardedFrom;
+    if (!fromUser) return 'کاربر';
+
+    // ۱. اگر بک‌اند آبجکت populate شده فرستاده باشد
+    if (typeof fromUser === 'object') {
+      const id = String(fromUser._id || fromUser.id || '');
+      if (id && id === this.currentUserId) return 'شما';
+      return this.getUserDisplayName(fromUser, 'کاربر');
+    }
+
+    const fromId = String(fromUser).trim();
+
+    // ۲. اگر ID خودِ کاربر لاگین‌شده است
+    if (fromId === this.currentUserId) {
+      return 'شما';
+    }
+
+    // ۳. جستجو در لیست مخاطبین
+    const contacts = this.contactsService.contacts() || [];
+    const found = contacts.find(
+      c => String(c.contactUserId || c.contactUser?._id || (c.contactUser as any)?.id) === fromId
+    );
+    if (found) {
+      return this.getContactDisplayName(found);
+    }
+
+    // ۴. اگر کاربرِ همین چت فعلی است
+    if (fromId === this.targetUserId()) {
+      return this.selectedUser()?.name || 'کاربر';
+    }
+
+    // ۵. اگر ObjectId مونگو است و در مخاطبین نبود، کد هگزادسیمال را نشان نده
+    if (/^[a-f\d]{24}$/i.test(fromId)) {
+      return 'کاربر';
+    }
+
+    return fromId;
+  }
+
+
+  toggleForwardTarget(contactUserId: string): void {
+    const next = new Set(this.selectedForwardTargets());
+    if (next.has(contactUserId)) {
+      next.delete(contactUserId);
+    } else {
+      next.add(contactUserId);
+    }
+    this.selectedForwardTargets.set(next);
+  }
+
+  isForwardTargetSelected(contactUserId: string): boolean {
+    return this.selectedForwardTargets().has(contactUserId);
+  }
+
+  async confirmForward(): Promise<void> {
+    const msg = this.forwardingMessage();
+    const targetUserIds = Array.from(this.selectedForwardTargets());
+    if (!msg || targetUserIds.length === 0 || this.isForwarding()) return;
+
+    this.isForwarding.set(true);
+    const previousRoomId = this.chatService.activeConversationId();
+
+    try {
+      const contentToSend = msg.content || '';
+      const mediaToSend = msg.media?.length ? msg.media : undefined;
+      const allContacts = this.contactsService.contacts();
+
+      // استخراج اطلاعات فرستنده اصلی برای متادیتای فوروارد
+      const rawForwarded = (msg as any).forwardedFromUser;
+      const existingForwardedId = typeof rawForwarded === 'object'
+        ? (rawForwarded?._id || rawForwarded?.id)
+        : rawForwarded;
+
+      const originalSenderId = String(
+        existingForwardedId ||
+        msg.sender?._id ||
+        (msg.sender as any)?.id ||
+        (msg as any).senderId?._id ||
+        (msg as any).senderId ||
+        (msg.isSender ? this.currentUserId : this.targetUserId()) ||
+        ''
+      );
+
+      const originalMsgId = msg._id || msg.id;
+
+      for (const contactUserId of targetUserIds) {
+        const contactObj = allContacts.find(
+          (c) => c.contactUserId === contactUserId || c.contactUser?._id === contactUserId
+        );
+
+        let targetRoomId = contactObj?.roomId;
+
+        if (!targetRoomId) {
+          const res = await firstValueFrom(this.contactsService.getOrCreateRoom(contactUserId));
+          targetRoomId = res.data;
+        }
+
+        if (targetRoomId) {
+          // تغییر مهم: فراخوانی متد جدید برای ارسال پیام فوروارد شده
+          this.chatService.sendForwardedMessage(
+            targetRoomId,
+            contentToSend,
+            mediaToSend,
+            originalMsgId,
+            originalSenderId
+          );
+        }
+      }
+
+      if (previousRoomId) {
+        this.chatService.setActiveConversation(previousRoomId);
+      }
+      this.closeForwardModal();
+    } catch (err) {
+      console.error('Error forwarding message:', err);
+    } finally {
+      this.isForwarding.set(false);
+    }
+  }
+
+
 
   onPin(msg: Message) {
     console.log('Pin message:', msg);
@@ -632,7 +811,7 @@ export class ChatWindowComponent implements AfterViewChecked, OnDestroy {
           avatar = avatar || me?.photoUrl || me?.avatar;
         } else {
           const active = this.selectedUser();
-          name = name || active?.name || 'کاربر';
+          name = name || active?.name;
           avatar = avatar || active?.avatar;
         }
       }

@@ -479,6 +479,13 @@
 
                         <!-- Message Text + Time Badge with Safe Wrapping -->
                         <div class="w-full px-1 break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                            @if (msg.isForwarded) {
+                            <div class="flex items-center gap-1 text-[11px] text-gray-200 mb-1 italic">
+                                <lucide-icon name="forward" [size]="12"></lucide-icon>
+                                <span>Forwarded from {{ getForwardedSenderName(msg) }}</span>
+                            </div>
+                            }
+
                             @if (msg.content) {
                             <span class="whitespace-pre-wrap select-text leading-normal" dir="auto">{{ msg.content
                                 }}</span>
@@ -855,3 +862,108 @@
     </app-media-upload-modal>
 
 </div>
+
+
+<!-- Forward Message Modal -->
+@if (isForwardModalOpen()) {
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+    (click)="closeForwardModal()">
+    <div class="bg-popover text-popover-foreground border-border flex w-full max-w-md flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="border-border flex items-center justify-between border-b px-4 py-3">
+            <div class="flex items-center gap-2">
+                <ng-icon name="lucideForward" class="text-primary text-lg"></ng-icon>
+                <h3 class="text-base font-semibold">هدایت پیام (Forward)</h3>
+            </div>
+            <button hlmBtn variant="ghost" size="icon"
+                class="text-muted-foreground hover:text-foreground h-8 w-8 rounded-full" (click)="closeForwardModal()">
+                <ng-icon name="lucideX" class="text-lg"></ng-icon>
+            </button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="border-border border-b p-3">
+            <div class="bg-muted/60 flex items-center gap-2 rounded-xl border px-3 py-2">
+                <ng-icon name="lucideSearch" class="text-muted-foreground text-base"></ng-icon>
+                <input type="text" [ngModel]="forwardSearchQuery()" (ngModelChange)="forwardSearchQuery.set($event)"
+                    placeholder="جستجوی نام یا شماره مخاطب..."
+                    class="placeholder:text-muted-foreground w-full bg-transparent text-sm focus:outline-none" />
+            </div>
+        </div>
+
+        <!-- Contacts List -->
+        <div class="max-h-72 overflow-y-auto p-2">
+            @if (contactsService.isLoading()) {
+            <div class="text-muted-foreground py-8 text-center text-sm">در حال بارگذاری مخاطبین...</div>
+            } @else if (filteredForwardContacts().length === 0) {
+            <div class="text-muted-foreground py-8 text-center text-sm">مخاطبی یافت نشد.</div>
+            } @else {
+            @for (contact of filteredForwardContacts(); track contact._id) {
+            <div (click)="toggleForwardTarget(contact.contactUserId)"
+                class="hover:bg-accent/60 flex cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 transition-colors"
+                [ngClass]="{ 'bg-primary/10': isForwardTargetSelected(contact.contactUserId) }">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="relative shrink-0">
+                        <hlm-avatar class="border-border h-10 w-10 border">
+                            @if (contact.contactUser?.avatar) {
+                            <img [src]="contact.contactUser.avatar" [alt]="getContactDisplayName(contact)"
+                                hlmAvatarImage />
+                            }
+                            <span hlmAvatarFallback class="bg-primary/15 text-primary text-xs font-semibold">
+                                {{ getContactDisplayName(contact).slice(0, 2).toUpperCase() }}
+                            </span>
+                        </hlm-avatar>
+
+                        @if (contact.online) {
+                        <span
+                            class="border-background absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 bg-emerald-500"></span>
+                        }
+                    </div>
+
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="truncate text-sm font-medium">{{ getContactDisplayName(contact) }}</span>
+                        @if (contact.contactUser?.phoneNumber) {
+                        <span class="text-muted-foreground truncate text-xs">
+                            {{ contact.contactUser.phoneNumber }}
+                        </span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Checkbox Indicator -->
+                <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
+                    [ngClass]="
+                  isForwardTargetSelected(contact.contactUserId)
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-muted-foreground/40'
+                ">
+                    @if (isForwardTargetSelected(contact.contactUserId)) {
+                    <ng-icon name="lucideCheck" class="text-xs"></ng-icon>
+                    }
+                </div>
+            </div>
+            }
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="border-border bg-muted/20 flex items-center justify-between border-t px-4 py-3">
+            <span class="text-muted-foreground text-xs">
+                {{ selectedForwardTargets().size }} مخاطب انتخاب شده
+            </span>
+            <div class="flex items-center gap-2">
+                <button hlmBtn variant="ghost" size="sm" type="button" (click)="closeForwardModal()">
+                    انصراف
+                </button>
+                <button hlmBtn size="sm" type="button"
+                    [disabled]="isForwarding() || selectedForwardTargets().size === 0" (click)="confirmForward()"
+                    class="gap-1.5">
+                    <ng-icon name="lucideSend" class="text-xs"></ng-icon>
+                    <span>{{ isForwarding() ? 'در حال ارسال...' : 'ارسال' }}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}
