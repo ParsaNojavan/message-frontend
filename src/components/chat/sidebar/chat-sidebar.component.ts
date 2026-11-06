@@ -62,6 +62,9 @@ import { ConversationFilter, RecentContact, SearchResultItem } from '../../../mo
 import { Contact } from '../../../models/contact.model';
 import { formatChatTime } from '../../../../libs/utils/format-date'
 
+import { EditContactDialogComponent } from '../modals/edit-contact-dialog.component';
+import { DeleteContactDialogComponent } from '../modals/delete-contact-dialog.component';
+
 @Component({
   selector: 'app-chat-sidebar',
   standalone: true,
@@ -80,7 +83,9 @@ import { formatChatTime } from '../../../../libs/utils/format-date'
     SettingsDialogComponent,
     CreateChannelDialogComponent,
     CreateGroupDialogComponent,
-    AddContactDialogComponent
+    AddContactDialogComponent,
+    EditContactDialogComponent,
+    DeleteContactDialogComponent
   ],
   providers: [
     provideIcons({
@@ -368,5 +373,24 @@ export class ChatSidebarComponent implements OnInit {
         console.error('Failed to add contact:', err);
       }
     });
+  }
+
+  onContactUpdated(updatedContact: Contact) {
+    const updatedId = updatedContact.contactUserId || updatedContact.contactUser?._id;
+    this.contacts.update((list) =>
+      list.map((c) => {
+        const id = c.contactUserId || c.contactUser?._id;
+        return id === updatedId ? { ...c, ...updatedContact } : c;
+      })
+    );
+  }
+
+  onContactDeleted(deletedUserId: string) {
+    this.contacts.update((list) =>
+      list.filter((c) => {
+        const id = c.contactUserId || c.contactUser?._id;
+        return id !== deletedUserId;
+      })
+    );
   }
 }
