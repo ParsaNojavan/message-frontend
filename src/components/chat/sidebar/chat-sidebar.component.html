@@ -124,7 +124,7 @@
         class="flex-1 overflow-y-auto divide-y divide-zinc-200/50 dark:divide-zinc-800/40 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         @for (chat of filteredConversations(); track chat.id) {
         <a [routerLink]="['/chat']" [queryParams]="{ id: chat.id }" [hlmContextMenuTrigger]="chatMenu"
-            (contextmenu)="activeMenuChat.set(chat)"
+            (mousedown)="onChatMouseDown($event, chat)" (contextmenu)="onChatContextMenu($event, chat)"
             [class.bg-emerald-500/10]="chatService.activeConversationId() === chat.id"
             [class.dark:bg-emerald-500/15]="chatService.activeConversationId() === chat.id"
             class="flex items-center gap-3 p-3 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors select-none">
@@ -139,7 +139,17 @@
 
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-1">
-                    <h4 class="font-semibold text-sm truncate text-zinc-900 dark:text-zinc-100">{{ chat.name }}</h4>
+                    <h4
+                        class="font-semibold text-sm truncate text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <span class="truncate">{{ chat.name }}</span>
+                        @if (chat.pinnedAt || chat.pinned) {
+                        <ng-icon name="lucidePin"
+                            class="text-xs text-emerald-600 dark:text-emerald-400 shrink-0 rotate-45"></ng-icon>
+                        }
+                        @if (chatService.isRoomMuted(chat.mutedUntil)) {
+                        <ng-icon name="lucideBellOff" class="text-xs text-zinc-400 shrink-0"></ng-icon>
+                        }
+                    </h4>
                     <span class="text-[11px] text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">{{
                         formatChatTime(chat.lastMessageTime) }}</span>
                 </div>
@@ -164,63 +174,33 @@
         </div>
         }
 
+        <!-- Dynamic Context Menu -->
         <ng-template #chatMenu>
             <hlm-dropdown-menu
                 class="w-60 p-1.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/70 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl select-none flex flex-col gap-0.5">
 
-                <button hlmDropdownMenuItem (click)="handleAction('profile')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideUser" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">View Profile</span>
-                </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('unpin')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucidePinOff" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Unpin</span>
-                </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('folder')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideFolderPlus" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Add to Folder</span>
-                </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('unread')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideMessageSquareDot" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Mark as unread</span>
-                </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('mute')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideBellOff" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Mute</span>
-                </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('archive')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideArchive" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Archive</span>
-                </button>
-
+                @for (option of activeMenuOptions(); track $index) {
+                @if (option.isSeparator) {
                 <hlm-dropdown-menu-separator class="my-1 bg-zinc-200/70 dark:bg-zinc-800/60" />
-
-                <button hlmDropdownMenuItem variant="destructive" (click)="handleAction('delete')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
-                    <ng-icon name="lucideTrash2" class="size-4.5 shrink-0" />
-                    <span class="text-sm font-medium">Delete Chat</span>
+                } @else {
+                <button type="button" hlmDropdownMenuItem
+                    [variant]="option.variant === 'destructive' ? 'destructive' : 'default'"
+                    (mousedown)="onMenuItemMouseDown($event, option.action!)" (click)="handleAction(option.action!)"
+                    [ngClass]="option.variant === 'destructive' 
+                                ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40' 
+                                : 'text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800'"
+                    class="w-full flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl transition-colors text-left">
+                    <ng-icon [name]="option.icon || 'lucideHelpCircle'" class="size-4.5 shrink-0"
+                        [class.text-zinc-400]="option.variant !== 'destructive'" />
+                    <span class="text-sm font-medium">{{ option.label }}</span>
                 </button>
-
-                <button hlmDropdownMenuItem (click)="handleAction('select')"
-                    class="flex items-center gap-3 px-3 py-2 cursor-pointer rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white">
-                    <ng-icon name="lucideCheckSquare" class="size-4.5 text-zinc-400 shrink-0" />
-                    <span class="text-sm font-medium">Select</span>
-                </button>
+                }
+                }
 
             </hlm-dropdown-menu>
         </ng-template>
     </div>
+
     }
 
     <!-- ================= 2. SEARCH VIEW ================= -->
@@ -617,4 +597,5 @@
     </div>
     }
 
+    <app-confirm-dialog />
 </div>
