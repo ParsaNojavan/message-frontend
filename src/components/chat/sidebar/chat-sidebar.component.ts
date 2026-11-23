@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -34,14 +34,17 @@ import {
   lucideSparkles,
   lucideBug,
   lucideLogOut,
+  lucidePin,
   lucidePinOff,
   lucideFolderPlus,
   lucideMessageSquareDot,
+  lucideBell,
   lucideBellOff,
   lucideArchive,
   lucideCheckSquare,
   lucideMessageSquare,
-  lucideUserPlus
+  lucideUserPlus,
+  lucideEraser
 } from '@ng-icons/lucide';
 
 // Spartan UI Imports
@@ -57,13 +60,26 @@ import { AccountSettingsComponent } from '../modals/account-dialog.component';
 import { SettingsDialogComponent } from '../modals/setting-dialog.component';
 import { CreateChannelDialogComponent } from '../modals/channel-dialog.component';
 import { CreateGroupDialogComponent } from '../modals/group-dialog.component';
-import { AddContactDialogComponent, NewContactData } from '../modals/add-contact-dialog.component';
-import { ConversationFilter, RecentContact, SearchResultItem } from '../../../models/conversation.model';
-import { Contact } from '../../../models/contact.model';
-import { formatChatTime } from '../../../../libs/utils/format-date'
-
+import { AddContactDialogComponent } from '../modals/add-contact-dialog.component';
 import { EditContactDialogComponent } from '../modals/edit-contact-dialog.component';
 import { DeleteContactDialogComponent } from '../modals/delete-contact-dialog.component';
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogConfig,
+  ConfirmDialogResult
+} from '../modals/confirm-dialog.component';
+
+import { Conversation, ConversationFilter, RecentContact, SearchResultItem } from '../../../models/conversation.model';
+import { Contact } from '../../../models/contact.model';
+import { formatChatTime } from '../../../../libs/utils/format-date';
+
+interface ContextMenuOption {
+  label?: string;
+  action?: string;
+  icon?: string;
+  variant?: 'default' | 'destructive';
+  isSeparator?: boolean;
+}
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -85,7 +101,8 @@ import { DeleteContactDialogComponent } from '../modals/delete-contact-dialog.co
     CreateGroupDialogComponent,
     AddContactDialogComponent,
     EditContactDialogComponent,
-    DeleteContactDialogComponent
+    DeleteContactDialogComponent,
+    ConfirmDialogComponent
   ],
   providers: [
     provideIcons({
@@ -115,14 +132,17 @@ import { DeleteContactDialogComponent } from '../modals/delete-contact-dialog.co
       lucideSparkles,
       lucideBug,
       lucideLogOut,
+      lucidePin,
       lucidePinOff,
       lucideFolderPlus,
       lucideMessageSquareDot,
+      lucideBell,
       lucideBellOff,
       lucideArchive,
       lucideCheckSquare,
       lucideMessageSquare,
-      lucideUserPlus
+      lucideUserPlus,
+      lucideEraser
     })
   ],
   templateUrl: './chat-sidebar.component.html'
@@ -134,7 +154,8 @@ export class ChatSidebarComponent implements OnInit {
   readonly authService = inject(AuthService);
   readonly router = inject(Router);
 
-  // پروفایل و وضعیت کاربر
+  private readonly confirmDialog = viewChild.required(ConfirmDialogComponent);
+
   readonly currentUser = this.authService.userProfile;
   readonly formatChatTime = formatChatTime;
 
@@ -149,7 +170,6 @@ export class ChatSidebarComponent implements OnInit {
     const user = this.currentUser() as any;
     return user?.avatar || user?.photoUrl || null;
   });
-
 
   readonly userInitials = computed(() => {
     const user = this.currentUser();
@@ -171,7 +191,7 @@ export class ChatSidebarComponent implements OnInit {
   currentView = signal<'chats' | 'search' | 'profile' | 'contacts'>('chats');
   searchQuery = signal<string>('');
   selectedTab = signal<'all' | 'group' | 'channel' | 'dm'>('all');
-  activeMenuChat = signal<any>(null);
+  activeMenuChat = signal<Conversation | null>(null);
   contactsSearchQuery = signal<string>('');
   selectedChatFilter = signal<ConversationFilter>('ALL');
 
@@ -186,6 +206,87 @@ export class ChatSidebarComponent implements OnInit {
   ]);
 
   allSearchItems = signal<SearchResultItem[]>([]);
+
+  activeMenuOptions = computed<ContextMenuOption[]>(() => {
+    const chat = this.activeMenuChat();
+    if (!chat) return [];
+
+    const type = (chat.type || 'DM').toUpperCase();
+    const role = (chat.role || 'MEMBER').toUpperCase();
+    const isPinned = Boolean(chat.pinnedAt || chat.pinned);
+    const isMuted = this.chatService.isRoomMuted(chat.mutedUntil);
+
+    const options: ContextMenuOption[] = [];
+
+    options.push({ label: 'View Profile', action: 'profile', icon: 'lucideUser' });
+
+    if (isPinned) {
+      options.push({ label: 'Unpin', action: 'unpin', icon: 'lucidePinOff' });
+    } else {
+      options.push({ label: 'Pin', action: 'pin', icon: 'lucidePin' });
+    }
+
+    options.push({ label: 'Mark as unread', action: 'unread', icon: 'lucideMessageSquareDot' });
+
+    if (isMuted) {
+      options.push({ label: 'Unmute', action: 'unmute', icon: 'lucideBell' });
+    } else {
+      options.push({ label: 'Mute', action: 'mute', icon: 'lucideBellOff' });
+    }
+
+    options.push({ label: 'Archive', action: 'archive', icon: 'lucideArchive' });
+    options.push({ isSeparator: true });
+
+    if (type === 'DM' || type === 'GROUP') {
+      options.push({
+        label: 'Clear History',
+        action: 'clear-history',
+        icon: 'lucideEraser',
+        variant: 'destructive'
+      });
+    }
+
+    if (type === 'DM') {
+      options.push({
+        label: 'Delete Chat',
+        action: 'delete-dm',
+        icon: 'lucideTrash2',
+        variant: 'destructive'
+      });
+    } else if (type === 'GROUP') {
+      options.push({
+        label: 'Leave Group',
+        action: 'leave-group',
+        icon: 'lucideLogOut',
+        variant: 'destructive'
+      });
+      if (role === 'OWNER') {
+        options.push({
+          label: 'Delete Group',
+          action: 'delete-group',
+          icon: 'lucideTrash2',
+          variant: 'destructive'
+        });
+      }
+    } else if (type === 'CHANNEL') {
+      options.push({
+        label: 'Leave Channel',
+        action: 'leave-channel',
+        icon: 'lucideLogOut',
+        variant: 'destructive'
+      });
+      if (role === 'OWNER') {
+        options.push({
+          label: 'Delete Channel',
+          action: 'delete-channel',
+          icon: 'lucideTrash2',
+          variant: 'destructive'
+        });
+      }
+    }
+
+    return options;
+  });
 
   ngOnInit(): void {
     this.contactsService.getContacts().subscribe({
@@ -222,7 +323,8 @@ export class ChatSidebarComponent implements OnInit {
     const query = this.searchQuery().trim().toLowerCase();
     const conversations = this.chatService.conversations() || [];
 
-    return conversations.filter(chat => {
+    const filtered = conversations.filter(chat => {
+      if ((chat as any).archived) return false;
       const matchesType = filter === 'ALL' || chat.type?.toUpperCase() === filter;
       const matchesSearch =
         !query ||
@@ -230,10 +332,29 @@ export class ChatSidebarComponent implements OnInit {
         (chat.lastMessage?.toLowerCase().includes(query) ?? false);
       return matchesType && matchesSearch;
     });
+
+    // مرتب‌سازی: چت‌های پین شده همیشه بالا باشند
+    return [...filtered].sort((a, b) => {
+      const aPinned = Boolean(a.pinnedAt || a.pinned);
+      const bPinned = Boolean(b.pinnedAt || b.pinned);
+
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+
+      if (aPinned && bPinned) {
+        const pinTimeA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+        const pinTimeB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+        if (pinTimeA !== pinTimeB) return pinTimeB - pinTimeA;
+      }
+
+      const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+      const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+      return timeB - timeA;
+    });
   });
 
   chatCounts = computed(() => {
-    const list = this.chatService.conversations() || [];
+    const list = (this.chatService.conversations() || []).filter(c => !(c as any).archived);
     return {
       all: list.length,
       dm: list.filter(c => c.type?.toUpperCase() === 'DM').length,
@@ -324,6 +445,14 @@ export class ChatSidebarComponent implements OnInit {
     }
   }
 
+  private askConfirm(config: ConfirmDialogConfig): Promise<ConfirmDialogResult> {
+    return this.confirmDialog().open(config);
+  }
+
+  private notify(title: string, message?: string): Promise<ConfirmDialogResult> {
+    return this.confirmDialog().open({ title, message, mode: 'alert', confirmText: 'Got it' });
+  }
+
   onSelectContact(contact: Contact): void {
     const contactUserId = contact.contactUserId || contact.contactUser?._id;
     const fullName = this.getContactFullName(contact);
@@ -345,52 +474,192 @@ export class ChatSidebarComponent implements OnInit {
     this.backToChats();
   }
 
-  handleAction(action: string): void {
-    console.log(`Action: ${action} for chat:`, this.activeMenuChat()?.name);
-  }
-
   redirectSupport(): void {
-    this.router.navigate(['/support']);
+    window.open('https://t.me/support', '_blank');
   }
 
-  getInitials(firstName?: string, lastName?: string): string {
-    if (!firstName && !lastName) return '?';
-    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
-    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
-    return `${f}${l}`;
+  onNewContactAdded(_newContactData: any): void {
+    this.contactsService.getContacts().subscribe();
   }
 
-  onNewContactAdded(newContact: NewContactData): void {
-    this.contactsService.addContact({
-      query: newContact.phoneOrUsername,
-      customFirstName: newContact.firstName,
-      customLastName: newContact.lastName
-    }).subscribe({
-      next: (created) => {
-        console.log('Contact added successfully:', created);
-      },
-      error: (err) => {
-        console.error('Failed to add contact:', err);
+  onContactUpdated(_updatedContact: Contact): void {
+    this.contactsService.getContacts().subscribe();
+  }
+
+  onContactDeleted(_deletedContactId: string): void {
+    this.contactsService.getContacts().subscribe();
+  }
+
+  private lastActionTimestamp = 0;
+
+  onChatMouseDown(event: MouseEvent, chat: Conversation): void {
+    if (event.button === 2) {
+      this.activeMenuChat.set(chat);
+    }
+  }
+
+  onChatContextMenu(_event: MouseEvent, chat: Conversation): void {
+    this.activeMenuChat.set(chat);
+  }
+
+  onMenuItemMouseDown(event: MouseEvent, action: string): void {
+    // فقط چپ‌کلیک روی آیتم منو
+    if (event.button !== 0) return;
+    this.handleAction(action);
+  }
+
+  async handleAction(action: string): Promise<void> {
+    // جلوگیری از اجرای دوبار در صورت فایر شدن همزمان mousedown و click
+    const now = Date.now();
+    if (now - this.lastActionTimestamp < 250) return;
+    this.lastActionTimestamp = now;
+
+    if (action === 'saved-messages' || action === 'guide') {
+      console.log(`Global action: ${action}`);
+      return;
+    }
+
+    const chat = this.activeMenuChat();
+    if (!chat) {
+      console.warn('No active chat selected for context menu action:', action);
+      return;
+    }
+
+    const roomId = chat.id;
+    const chatName = chat.name;
+    const type = (chat.type || 'DM').toUpperCase();
+
+    switch (action) {
+      case 'profile': {
+        this.chatService.setActiveConversation(roomId);
+        this.router.navigate(['/chat'], { queryParams: { id: roomId, info: 'true' } });
+        break;
       }
-    });
-  }
 
-  onContactUpdated(updatedContact: Contact) {
-    const updatedId = updatedContact.contactUserId || updatedContact.contactUser?._id;
-    this.contacts.update((list) =>
-      list.map((c) => {
-        const id = c.contactUserId || c.contactUser?._id;
-        return id === updatedId ? { ...c, ...updatedContact } : c;
-      })
-    );
-  }
+      case 'pin': {
+        this.chatService.pinRoom(roomId);
+        break;
+      }
 
-  onContactDeleted(deletedUserId: string) {
-    this.contacts.update((list) =>
-      list.filter((c) => {
-        const id = c.contactUserId || c.contactUser?._id;
-        return id !== deletedUserId;
-      })
-    );
+      case 'unpin': {
+        this.chatService.unpinRoom(roomId);
+        break;
+      }
+
+      case 'mute': {
+        this.chatService.muteRoom(roomId, 525600).subscribe({
+          error: (err) => console.error('Mute failed:', err)
+        });
+        break;
+      }
+
+      case 'unmute': {
+        this.chatService.unmuteRoom(roomId).subscribe({
+          error: (err) => console.error('Unmute failed:', err)
+        });
+        break;
+      }
+
+      case 'unread': {
+        this.chatService.markAsUnread(roomId);
+        break;
+      }
+
+      case 'archive': {
+        this.chatService.archiveRoom(roomId);
+        break;
+      }
+
+      case 'unarchive': {
+        this.chatService.unarchiveRoom(roomId);
+        break;
+      }
+
+      case 'clear-history': {
+        const { confirmed, checked } = await this.askConfirm({
+          title: 'Clear History',
+          message: `Are you sure you want to clear all message history in "${chatName}"?`,
+          confirmText: 'Clear',
+          variant: 'destructive',
+          checkboxLabel: type === 'DM' ? `Also clear history for ${chatName}` : undefined,
+          checkboxDefault: false
+        });
+        if (!confirmed) return;
+
+        this.chatService.clearHistory(roomId, type, type === 'DM' ? checked : false);
+        break;
+      }
+
+      case 'delete-dm': {
+        const { confirmed, checked } = await this.askConfirm({
+          title: 'Delete Chat',
+          message: `Are you sure you want to delete conversation with "${chatName}"?`,
+          confirmText: 'Delete',
+          variant: 'destructive',
+          checkboxLabel: `Also delete for ${chatName}`,
+          checkboxDefault: false
+        });
+        if (!confirmed) return;
+
+        this.chatService.deleteDirectRoom(roomId, checked);
+        break;
+      }
+
+      case 'leave-group': {
+        const { confirmed } = await this.askConfirm({
+          title: 'Leave Group',
+          message: `Are you sure you want to leave "${chatName}"?`,
+          confirmText: 'Leave',
+          variant: 'destructive'
+        });
+        if (!confirmed) return;
+
+        this.chatService.leaveGroup(roomId);
+        break;
+      }
+
+      case 'delete-group': {
+        const { confirmed } = await this.askConfirm({
+          title: 'Delete Group',
+          message: `Delete group "${chatName}" for ALL members? This cannot be undone.`,
+          confirmText: 'Delete',
+          variant: 'destructive'
+        });
+        if (!confirmed) return;
+
+        this.chatService.deleteGroup(roomId);
+        break;
+      }
+
+      case 'leave-channel': {
+        const { confirmed } = await this.askConfirm({
+          title: 'Leave Channel',
+          message: `Are you sure you want to leave "${chatName}"?`,
+          confirmText: 'Leave',
+          variant: 'destructive'
+        });
+        if (!confirmed) return;
+
+        this.chatService.leaveChannel(roomId);
+        break;
+      }
+
+      case 'delete-channel': {
+        const { confirmed } = await this.askConfirm({
+          title: 'Delete Channel',
+          message: `Delete channel "${chatName}" for ALL subscribers? This cannot be undone.`,
+          confirmText: 'Delete',
+          variant: 'destructive'
+        });
+        if (!confirmed) return;
+
+        this.chatService.deleteChannel(roomId);
+        break;
+      }
+
+      default:
+        console.log(`Triggered action: ${action} on chat:`, chatName);
+        break;
+    }
   }
 }

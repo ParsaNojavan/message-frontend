@@ -8,7 +8,9 @@ import { AuthService } from '../auth/auth.service';
 import { SocketService } from '../socket/socket.service';
 import { BackendMessagesResponse } from '../../models/dto/message.dto';
 import { RoomMuteResponse } from '../../models/dto/roomMute.dto';
-import { Message, MessageMediaItem, MessageReaction, MessageReply, MessageUserDetail } from '../../models/message.model';
+import { Message, MessageMediaItem, MessageReaction, MessageReply } from '../../models/message.model';
+
+type RoomKind = 'GROUP' | 'CHANNEL';
 
 @Injectable({
   providedIn: 'root'
@@ -78,7 +80,6 @@ export class ChatService {
   private normalizeReply(rawReply: any): MessageReply | null {
     if (!rawReply) return null;
 
-    // در صورتی که فقط شناسه ریپلای ارسال شده باشد
     if (typeof rawReply === 'string' || typeof rawReply === 'number') {
       return {
         id: String(rawReply),
@@ -127,15 +128,14 @@ export class ChatService {
             reactions: incomingMsg.reactions || [],
             media: incomingMsg.media || [],
             isForwarded: incomingMsg.isForwarded || false,
-            forwardedFromUser: incomingMsg.forwardedFromUser || null, // <--- اضافه شد
-            forwardedFromRoom: incomingMsg.forwardedFromRoom || null, // <--- اضافه شد
+            forwardedFromUser: incomingMsg.forwardedFromUser || null,
+            forwardedFromRoom: incomingMsg.forwardedFromRoom || null,
             isEdited: incomingMsg.isEdited || false
           };
 
           this.messages.update(allMessages => {
             const currentRoomMsgs = allMessages[roomId] || [];
 
-            // اگر خود کاربر فرستاده بود، پیام optimistic موقت جایگزین شود
             if (isSender) {
               const tempIndex = currentRoomMsgs.findIndex(
                 m => m.status === 'sending' && m.content === formattedMessage.content
@@ -192,7 +192,333 @@ export class ChatService {
         },
         error: (err) => console.error('Socket reaction update error:', err)
       });
+
+    // 3. حذف روم‌ها "برای من" -- سرور: room.deleted.me => { roomIds: string[] }
+    this.socketService.listen<{ roomIds: string[] }>('room.deleted.me')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          (payload?.roomIds || []).forEach(roomId => this.handleLocalRoomRemove(String(roomId)));
+        },
+        error: (err) => console.error('Socket room.deleted.me error:', err)
+      });
+
+    // 4. حذف دایرکت برای هر دو طرف -- سرور: direct.deleted.mutual => { roomId }
+    this.socketService.listen<{ roomId: string }>('direct.deleted.mutual')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          if (payload?.roomId) this.handleLocalRoomRemove(String(payload.roomId));
+        },
+        error: (err) => console.error('Socket direct.deleted.mutual error:', err)
+      });
+
+    // 5. ترک دائمی گروه/کانال -- سرور: room.left.permanent => { roomIds, type }
+    this.socketService.listen<{ roomIds: string[]; type: RoomKind }>('room.left.permanent')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          (payload?.roomIds || []).forEach(roomId => this.handleLocalRoomRemove(String(roomId)));
+        },
+        error: (err) => console.error('Socket room.left.permanent error:', err)
+      });
+
+    // 6. حذف/دراپ کل گروه یا کانال -- سرور: room.destroyed => { roomId, type }
+    this.socketService.listen<{ roomId: string; type: RoomKind }>('room.destroyed')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          if (payload?.roomId) this.handleLocalRoomRemove(String(payload.roomId));
+        },
+        error: (err) => console.error('Socket room.destroyed error:', err)
+      });
+
+    // 7. بیرون انداختن کاربر از روم (مثلاً بعد از بلاک شدن) -- room.kicked => { roomId, reason }
+    this.socketService.listen<{ roomId: string; reason?: string }>('room.kicked')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          if (payload?.roomId) this.handleLocalRoomRemove(String(payload.roomId));
+        },
+        error: (err) => console.error('Socket room.kicked error:', err)
+      });
+
+    // 8. حذف پیام‌ها برای همه -- message.deleted => { roomId, messageIds }
+    this.socketService.listen<{ roomId: string; messageIds: string[] }>('message.deleted')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          const roomId = payload?.roomId ? String(payload.roomId) : null;
+          if (!roomId || !payload.messageIds?.length) return;
+
+          this.messages.update(all => {
+            const roomMsgs = all[roomId];
+            if (!roomMsgs) return all;
+
+            const ids = new Set(payload.messageIds.map(id => String(id)));
+            const filtered = roomMsgs.filter(m => !ids.has(String(m._id || m.id)));
+
+            return { ...all, [roomId]: filtered };
+          });
+        },
+        error: (err) => console.error('Socket message.deleted error:', err)
+      });
+
+    // 9. حذف پیام‌ها "برای من" -- message.hidden => { messageIds }
+    this.socketService.listen<{ messageIds: string[] }>('message.hidden')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          if (!payload?.messageIds?.length) return;
+
+          const ids = new Set(payload.messageIds.map(id => String(id)));
+
+          this.messages.update(all => {
+            const next: Record<string | number, Message[]> = {};
+
+            Object.entries(all).forEach(([roomId, roomMsgs]) => {
+              next[roomId] = roomMsgs.filter(m => !ids.has(String(m._id || m.id)));
+            });
+
+            return next;
+          });
+        },
+        error: (err) => console.error('Socket message.hidden error:', err)
+      });
   }
+
+  /**
+   * پاکسازی لوکال پیام‌های یک روم در استیت فرانت‌اند
+   */
+  private handleLocalHistoryClear(roomId: string) {
+    this.messages.update(all => ({
+      ...all,
+      [roomId]: []
+    }));
+
+    this.conversations.update(chats =>
+      chats.map(c =>
+        String(c.id) === String(roomId)
+          ? { ...c, lastMessage: '', lastMessageData: null, unreadCount: 0 }
+          : c
+      )
+    );
+
+    if (String(this.activeConversationId()) === String(roomId)) {
+      this.replyingToMessage.set(null);
+    }
+  }
+
+  /**
+   * حذف لوکال یک روم از لیست مکالمات و بستن صفحه چت در صورت فعال بودن
+   */
+  private handleLocalRoomRemove(roomId: string) {
+    this.conversations.update(chats => chats.filter(c => String(c.id) !== String(roomId)));
+
+    this.messages.update(all => {
+      const copy = { ...all };
+      delete copy[roomId];
+      return copy;
+    });
+
+    if (String(this.activeConversationId()) === String(roomId)) {
+      this.activeConversationId.set(null);
+      this.replyingToMessage.set(null);
+      this.router.navigate(['/chat']);
+    }
+  }
+
+  // ==================== متدهای Pin / Unpin / Archive / Unread (منطبق با ChatController) ====================
+
+  /**
+   * منطبق با @Post(':roomId/pin') در ChatController
+   */
+  pinRoom(roomId: string | number) {
+    const id = String(roomId);
+    const now = new Date().toISOString();
+
+    this.conversations.update(chats =>
+      chats.map(c => String(c.id) === id ? { ...c, pinned: true, pinnedAt: now } : c)
+    );
+
+    this.http.post<any>(`${this.API_URL}/chat/${id}/pin`, {}).pipe(
+      tap((res) => {
+        const serverPinnedAt = res?.data?.pinnedAt;
+        if (serverPinnedAt !== undefined) {
+          this.conversations.update(chats =>
+            chats.map(c => String(c.id) === id ? { ...c, pinned: Boolean(serverPinnedAt), pinnedAt: serverPinnedAt } : c)
+          );
+        }
+      }),
+      catchError(err => {
+        console.error('Error pinning room:', err);
+        return of(null);
+      })
+    ).subscribe();
+  }
+
+  /**
+   * منطبق با @Post(':roomId/pin') در ChatController (چون بک‌اند Toggle می‌کند)
+   */
+  unpinRoom(roomId: string | number) {
+    const id = String(roomId);
+
+    this.conversations.update(chats =>
+      chats.map(c => String(c.id) === id ? { ...c, pinned: false, pinnedAt: null } : c)
+    );
+
+    this.http.post<any>(`${this.API_URL}/chat/${id}/pin`, {}).pipe(
+      catchError(err => {
+        console.error('Error unpinning room:', err);
+        return of(null);
+      })
+    ).subscribe();
+  }
+
+  markAsUnread(roomId: string | number) {
+    const id = String(roomId);
+    this.conversations.update(chats =>
+      chats.map(c => String(c.id) === id ? { ...c, unreadCount: Math.max(c.unreadCount || 0, 1) } : c)
+    );
+  }
+
+  /**
+   * منطبق با @Patch(':roomId/archive') در ChatController
+   */
+  archiveRoom(roomId: string | number) {
+    const id = String(roomId);
+
+    this.conversations.update(chats =>
+      chats.map(c => String(c.id) === id ? { ...c, archived: true, isArchived: true } as any : c)
+    );
+
+    if (String(this.activeConversationId()) === id) {
+      this.activeConversationId.set(null);
+      this.replyingToMessage.set(null);
+      this.router.navigate(['/chat']);
+    }
+
+    this.http.patch<any>(`${this.API_URL}/chat/${id}/archive`, {}).pipe(
+      catchError(err => {
+        console.error('Error archiving room:', err);
+        return of(null);
+      })
+    ).subscribe();
+  }
+
+  /**
+   * منطبق با @Patch(':roomId/unarchive') در ChatController
+   */
+  unarchiveRoom(roomId: string | number) {
+    const id = String(roomId);
+
+    this.conversations.update(chats =>
+      chats.map(c => String(c.id) === id ? { ...c, archived: false, isArchived: false } as any : c)
+    );
+
+    this.http.patch<any>(`${this.API_URL}/chat/${id}/unarchive`, {}).pipe(
+      catchError(err => {
+        console.error('Error unarchiving room:', err);
+        return of(null);
+      })
+    ).subscribe();
+  }
+
+  clearHistory(roomId: string | number, type: string = 'DM', alsoForOther: boolean = false) {
+    const id = String(roomId);
+
+    const emitClear = (messageIds: string[]) => {
+      if (messageIds.length === 0) return;
+
+      this.socketService.emit(
+        alsoForOther ? 'message.delete.everyone' : 'message.delete.me',
+        { messageIds }
+      );
+    };
+
+    const loadedIds = (this.messages()[id] || [])
+      .map(m => String(m._id || m.id))
+      .filter(mid => !!mid && !mid.startsWith('temp_'));
+
+    if (loadedIds.length > 0) {
+      emitClear(loadedIds);
+    } else {
+      // اگر پیام‌های این روم در استیت نیستند، اول از سرور بگیر و بعد حذف کن
+      this.http.get<BackendMessagesResponse>(`${this.API_URL}/chat/${id}/messages`).subscribe({
+        next: (res) => {
+          const fetchedIds = (res?.messages || [])
+            .map(m => String(m._id || (m as any).id))
+            .filter(Boolean);
+
+          emitClear(fetchedIds);
+        },
+        error: (err) => console.error(`clearHistory: failed to load messages for room ${id}`, err)
+      });
+    }
+
+    // به‌روزرسانی خوش‌بینانه‌ی UI
+    this.handleLocalHistoryClear(id);
+  }
+
+  /**
+   * حذف چت دایرکت.
+   *   - alsoForOther = true  -> direct.delete.mutual => { roomId }   (برای هر دو طرف)
+   *   - alsoForOther = false -> room.delete.me      => { roomIds }   (فقط برای من)
+   */
+  deleteDirectRoom(roomId: string | number, alsoForOther: boolean = false) {
+    const id = String(roomId);
+
+    if (alsoForOther) {
+      this.socketService.emit('direct.delete.mutual', { roomId: id });
+    } else {
+      this.socketService.emit('room.delete.me', { roomIds: [id] });
+    }
+
+    // خروج از اتاق سوکت تا پیام جدیدی دریافت نشود
+    this.socketService.emit('room.leave', { roomId: id });
+
+    this.handleLocalRoomRemove(id);
+  }
+
+  /**
+   * ترک دائمی گروه -> room.leave.permanent => { roomIds, type: 'GROUP' }
+   */
+  leaveGroup(roomId: string | number) {
+    const id = String(roomId);
+    this.socketService.emit('room.leave.permanent', { roomIds: [id], type: 'GROUP' });
+    this.socketService.emit('room.leave', { roomId: id });
+    this.handleLocalRoomRemove(id);
+  }
+
+  /**
+   * حذف (دراپ) کل گروه -> room.destroy => { roomId, type: 'GROUP' }
+   */
+  deleteGroup(roomId: string | number) {
+    const id = String(roomId);
+    this.socketService.emit('room.destroy', { roomId: id, type: 'GROUP' });
+    this.handleLocalRoomRemove(id);
+  }
+
+  /**
+   * ترک دائمی کانال -> room.leave.permanent => { roomIds, type: 'CHANNEL' }
+   */
+  leaveChannel(roomId: string | number) {
+    const id = String(roomId);
+    this.socketService.emit('room.leave.permanent', { roomIds: [id], type: 'CHANNEL' });
+    this.socketService.emit('room.leave', { roomId: id });
+    this.handleLocalRoomRemove(id);
+  }
+
+  /**
+   * حذف (دراپ) کل کانال -> room.destroy => { roomId, type: 'CHANNEL' }
+   */
+  deleteChannel(roomId: string | number) {
+    const id = String(roomId);
+    this.socketService.emit('room.destroy', { roomId: id, type: 'CHANNEL' });
+    this.handleLocalRoomRemove(id);
+  }
+
+  // =========================================================================
 
   loadConversations() {
     this.http.get<any>(`${this.API_URL}/chat/user-rooms`)
@@ -242,7 +568,7 @@ export class ChatService {
             if (room.type === 'DM' && room.otherUser) {
               displayName = `${room.otherUser.firstName || ''} ${room.otherUser.lastName || ''}`.trim() || room.otherUser.username || room.name;
             } else if (!displayName) {
-              displayName = 'No named chat'
+              displayName = 'No named chat';
             }
 
             const lastMsg = room.lastMessage;
@@ -262,11 +588,14 @@ export class ChatService {
               bio: room.otherUser?.bio,
               phoneNumber: room.otherUser?.phoneNumber,
               mutedUntil: room.mutedUntil ?? null,
+              pinnedAt: room.pinnedAt ?? null,
+              pinned: Boolean(room.pinned || room.pinnedAt || room.isPinned),
+              archived: Boolean(room.archived || room.isArchived || room.archivedAt),
               targetUserId,
               role: room.role,
               joinedAt: room.joinedAt,
               otherUser: room.otherUser || null
-            };
+            } as Conversation;
           });
         })
       )
@@ -305,8 +634,8 @@ export class ChatService {
               reactions: (m as any).reactions || [],
               media: (m as any).media || [],
               isForwarded: (m as any).isForwarded || false,
-              forwardedFromUser: (m as any).forwardedFromUser || null, // <--- اضافه شد
-              forwardedFromRoom: (m as any).forwardedFromRoom || null, // <--- اضافه شد
+              forwardedFromUser: (m as any).forwardedFromUser || null,
+              forwardedFromRoom: (m as any).forwardedFromRoom || null,
               isEdited: (m as any).isEdited || false
             } as Message;
           });
@@ -324,7 +653,6 @@ export class ChatService {
         }
       });
   }
-
 
   setActiveConversation(id: string | number | null) {
     this.activeConversationId.set(id);
@@ -377,7 +705,6 @@ export class ChatService {
       payload.replyTo = String(currentReply._id || currentReply.id);
     }
 
-    // اضافه کردن اپتیمیستیک به لیست با وضعیت sending
     const optimisticMessage: Message = {
       id: `temp_${Date.now()}`,
       conversationId: String(activeId),
@@ -425,20 +752,40 @@ export class ChatService {
     this.socketService.emit('room.message.react', payload);
   }
 
+  /**
+   * منطبق با @Put('room-mute') در ChatController
+   */
   muteRoom(roomId: string | number, durationMinutes: number) {
+    const optimisticDate = durationMinutes > 0
+      ? new Date(Date.now() + durationMinutes * 60000).toISOString()
+      : null;
+
+    this.conversations.update(chats =>
+      chats.map(chat =>
+        String(chat.id) === String(roomId)
+          ? { ...chat, mutedUntil: optimisticDate }
+          : chat
+      )
+    );
+
     return this.http.put<RoomMuteResponse>(`${this.API_URL}/chat/room-mute`, {
       roomId: String(roomId),
       durationMinutes
     }).pipe(
       tap((res) => {
-        const updatedMutedUntil = res.data?.muted ?? null;
-        this.conversations.update(chats =>
-          chats.map(chat =>
-            String(chat.id) === String(roomId)
-              ? { ...chat, mutedUntil: updatedMutedUntil }
-              : chat
-          )
-        );
+        if (res?.data && 'muted' in res.data) {
+          this.conversations.update(chats =>
+            chats.map(chat =>
+              String(chat.id) === String(roomId)
+                ? { ...chat, mutedUntil: res.data.muted ?? null }
+                : chat
+            )
+          );
+        }
+      }),
+      catchError(err => {
+        console.warn('Mute API error:', err);
+        return of(null);
       })
     );
   }

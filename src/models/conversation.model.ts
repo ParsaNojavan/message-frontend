@@ -1,7 +1,10 @@
 export type ConversationType = 'DM' | 'GROUP' | 'CHANNEL';
 export type ConversationFilter = 'ALL' | ConversationType;
+export type RoomRole = 'OWNER' | 'ADMIN' | 'MEMBER' | string;
+
 export interface RoomUserDetail {
   _id: string;
+  id?: string;
   phoneNumber?: string;
   bio?: string;
   firstName?: string;
@@ -25,11 +28,13 @@ export interface Conversation {
   lastMessageTime?: string;
   unreadCount?: number;
   isOnline?: boolean;
+  pinned?: boolean;
+  pinnedAt?: string | Date | null;
   bio?: string;
   phoneNumber?: string;
   mutedUntil?: string | Date | null;
   targetUserId?: string | null;
-  role?: string;
+  role?: RoomRole;
   joinedAt?: string;
   lastMessageData?: RoomLastMessage | null;
   otherUser?: RoomUserDetail | null;
